@@ -1,0 +1,74 @@
+; Engine configuration file.
+config_version=5
+
+[application]
+
+config/name="Office Mayhem"
+config/description="Comédie d'infiltration dans un bureau — SuperEssence Studio"
+config/version="0.1.0"
+run/main_scene="res://src/ui/boot.tscn"
+config/features=PackedStringArray("4.5", "Forward Plus")
+config/icon="res://assets/branding/icon.png"
+boot_splash/bg_color=Color(0, 0, 0, 1)
+boot_splash/image="res://assets/branding/superessence_logo.png"
+boot_splash/fullsize=true
+boot_splash/use_filter=true
+boot_splash/show_image=true
+
+[autoload]
+
+Data="*res://src/autoload/data.gd"
+Settings="*res://src/autoload/settings.gd"
+SaveGame="*res://src/autoload/save_game.gd"
+SoundFx="*res://src/autoload/sound_fx.gd"
+Net="*res://src/autoload/net.gd"
+Game="*res://src/autoload/game.gd"
+
+[display]
+
+window/size/viewport_width=1280
+window/size/viewport_height=720
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+window/handheld/orientation=4
+
+[filesystem]
+
+import/blender/enabled=false
+import/fbx/enabled=false
+
+[gui]
+
+theme/default_font_antialiasing=1
+
+[input_devices]
+
+pointing/emulate_touch_from_mouse=false
+pointing/emulate_mouse_from_touch=false
+
+[layer_names]
+
+3d_physics/layer_1="static"
+3d_physics/layer_2="props"
+3d_physics/layer_3="characters"
+3d_physics/layer_4="interact"
+3d_physics/layer_5="occluders"
+3d_physics/layer_6="sound_blockers"
+3d_physics/layer_7="triggers"
+
+[physics]
+
+3d/physics_engine="Jolt Physics"
+common/physics_ticks_per_second=60
+common/max_physics_steps_per_frame=4
+
+[rendering]
+
+renderer/rendering_method="forward_plus"
+renderer/rendering_method.mobile="mobile"
+textures/vram_compression/import_etc2_astc=true
+anti_aliasing/quality/msaa_3d=1
+lights_and_shadows/directional_shadow/size=2048
+lights_and_shadows/directional_shadow/soft_shadow_filter_quality=2
+lights_and_shadows/positional_shadow/atlas_size=2048
+environment/defaults/default_clear_color=Color(0.05, 0.05, 0.07, 1)

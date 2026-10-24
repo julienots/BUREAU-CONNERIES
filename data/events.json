@@ -1,0 +1,42 @@
+{
+  "schedule": [
+    {"time": "10:30", "event": "meeting", "duration_min": 40},
+    {"time": "12:30", "event": "lunch", "duration_min": 60},
+    {"time": "15:30", "event": "meeting", "duration_min": 30}
+  ],
+  "random_events": [
+    {"id": "inspection",       "title": "Inspection surprise !",            "weight": 1.0, "difficulty": 2,  "cooldown": 180, "duration": 80,
+     "desc": "Le directeur inspecte les postes un par un.", "requires": {"not_meeting": true}},
+    {"id": "early_meeting",    "title": "La réunion commence plus tôt",     "weight": 0.5, "difficulty": 1,  "cooldown": 400, "duration": 0,
+     "desc": "Tout le monde en salle Synergie, maintenant.", "requires": {"before_meeting_min": 20}},
+    {"id": "printer_jam",      "title": "L'imprimante est bloquée",         "weight": 1.0, "difficulty": 0,  "cooldown": 120, "duration": 60,
+     "desc": "Quelqu'un va s'énerver dessus.", "requires": {}},
+    {"id": "papers_drop",      "title": "Pluie de dossiers",                "weight": 1.0, "difficulty": 0,  "cooldown": 90,  "duration": 0,
+     "desc": "Un collègue fait tomber une pile de dossiers.", "requires": {}},
+    {"id": "vip_visit",        "title": "Visiteur important",               "weight": 0.7, "difficulty": -2, "cooldown": 300, "duration": 70,
+     "desc": "Le directeur est occupé avec un client dans son bureau.", "requires": {"not_meeting": true}},
+    {"id": "it_intervention",  "title": "Intervention informatique",        "weight": 0.6, "difficulty": 1,  "cooldown": 300, "duration": 45,
+     "desc": "Tous les ordinateurs redémarrent. Impossible de travailler… ou de pirater.", "requires": {}},
+    {"id": "lost_item",        "title": "Objet perdu",                      "weight": 0.8, "difficulty": 1,  "cooldown": 200, "duration": 60,
+     "desc": "Un collègue fouille le bureau à la recherche d'un objet.", "requires": {}},
+    {"id": "boss_call",        "title": "Le directeur reçoit un appel",     "weight": 1.0, "difficulty": -1, "cooldown": 150, "duration": 35,
+     "desc": "Il est coincé au téléphone. Profites-en.", "requires": {"not_meeting": true}},
+    {"id": "credible_rumor",   "title": "Une rumeur circule",               "weight": 0.7, "difficulty": 0,  "cooldown": 240, "duration": 0,
+     "desc": "Les bavards s'en donnent à cœur joie.", "requires": {}},
+    {"id": "boss_stays",       "title": "Le directeur s'installe en open space", "weight": 0.5, "difficulty": 2, "cooldown": 300, "duration": 60,
+     "desc": "Il a décidé de « sentir l'ambiance ». Prudence.", "requires": {"not_meeting": true}},
+    {"id": "boxes_fall",       "title": "Les cartons tremblent…",           "weight": 0.5, "difficulty": 0,  "cooldown": 300, "duration": 0,
+     "desc": "La pile des archives n'était pas très stable.", "requires": {}},
+    {"id": "rolling_chair",    "title": "Chaise en liberté",                "weight": 0.6, "difficulty": 0,  "cooldown": 150, "duration": 0,
+     "desc": "Une chaise roule toute seule dans le couloir.", "requires": {}},
+    {"id": "croissants",       "title": "Croissants en salle de pause !",   "weight": 0.7, "difficulty": -1, "cooldown": 400, "duration": 60,
+     "desc": "Tout le monde se précipite. L'open space se vide.", "requires": {"not_meeting": true}}
+  ],
+  "rumors": [
+    {"id": "meeting_moved",  "text": "La réunion est déplacée à 16h.",              "effect": "wrong_meeting", "about": ""},
+    {"id": "croissants",     "text": "Il paraît qu'il y a des croissants en salle de pause.", "effect": "go_break", "about": ""},
+    {"id": "yogurt_thief",   "text": "C'est {about} qui vole les yaourts du frigo.", "effect": "blame",        "about": "target"},
+    {"id": "boss_promotion", "text": "Le chef va promouvoir quelqu'un cette semaine.", "effect": "work_harder", "about": ""},
+    {"id": "boss_leaving",   "text": "Le chef part en vacances demain !",           "effect": "relax",         "about": ""}
+  ]
+}

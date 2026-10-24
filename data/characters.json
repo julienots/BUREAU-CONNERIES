@@ -1,0 +1,46 @@
+{
+  "archetypes": {
+    "snitch":      {"label": "La balance",          "denounce": 0.9, "loyalty": 0.15, "honesty": 0.6, "credulity": 0.4, "observation": 0.6, "clumsiness": 0.2, "gossip": 0.7, "laziness": 0.2, "grudge": 0.4, "work": 0.6, "courage": 0.5},
+    "loyal":       {"label": "Le complice loyal",   "denounce": 0.1, "loyalty": 0.95, "honesty": 0.4, "credulity": 0.5, "observation": 0.5, "clumsiness": 0.3, "gossip": 0.3, "laziness": 0.4, "grudge": 0.2, "work": 0.5, "courage": 0.7},
+    "coward":      {"label": "Le lâche",            "denounce": 0.5, "loyalty": 0.4, "honesty": 0.3, "credulity": 0.5, "observation": 0.4, "clumsiness": 0.5, "gossip": 0.5, "laziness": 0.4, "grudge": 0.3, "work": 0.5, "courage": 0.05},
+    "naive":       {"label": "Le naïf",             "denounce": 0.3, "loyalty": 0.6, "honesty": 0.9, "credulity": 0.95, "observation": 0.3, "clumsiness": 0.8, "gossip": 0.6, "laziness": 0.3, "grudge": 0.1, "work": 0.6, "courage": 0.4},
+    "observer":    {"label": "L'observatrice",      "denounce": 0.5, "loyalty": 0.5, "honesty": 0.8, "credulity": 0.15, "observation": 1.0, "clumsiness": 0.1, "gossip": 0.4, "laziness": 0.2, "grudge": 0.3, "work": 0.7, "courage": 0.6},
+    "grudge":      {"label": "Le rancunier",        "denounce": 0.6, "loyalty": 0.3, "honesty": 0.5, "credulity": 0.4, "observation": 0.5, "clumsiness": 0.3, "gossip": 0.5, "laziness": 0.3, "grudge": 1.0, "work": 0.6, "courage": 0.5},
+    "opportunist": {"label": "L'opportuniste",      "denounce": 0.5, "loyalty": 0.3, "honesty": 0.2, "credulity": 0.3, "observation": 0.6, "clumsiness": 0.3, "gossip": 0.6, "laziness": 0.8, "grudge": 0.4, "work": 0.3, "courage": 0.6},
+    "serious":     {"label": "L'employée sérieuse", "denounce": 0.4, "loyalty": 0.5, "honesty": 0.95, "credulity": 0.3, "observation": 0.6, "clumsiness": 0.15, "gossip": 0.1, "laziness": 0.0, "grudge": 0.2, "work": 1.0, "courage": 0.5}
+  },
+  "coworkers": [
+    {"id": "marcel",  "name": "Marcel",  "full_name": "Marcel Dubois",  "archetype": "snitch",      "voice": "marcel",  "pitch": 0.95, "desk": 0,
+     "look": {"skin": "#e8b996", "hair": "bald",     "hair_color": "#5a4632", "shirt": "#d8c9a3", "pants": "#4b4136", "tie": "#7a4b2a", "glasses": true,  "beard": "mustache", "build": 1.15, "height": 0.97, "skirt": false}},
+    {"id": "lucie",   "name": "Lucie",   "full_name": "Lucie Martin",   "archetype": "loyal",       "voice": "lucie",   "pitch": 1.05, "desk": 1,
+     "look": {"skin": "#f2c8a8", "hair": "bun",      "hair_color": "#b5441f", "shirt": "#4f9a6a", "pants": "#2f3644", "tie": "",        "glasses": false, "beard": "",         "build": 0.95, "height": 0.96, "skirt": true}},
+    {"id": "gerard",  "name": "Gérard",  "full_name": "Gérard Lemoine", "archetype": "grudge",      "voice": "gerard",  "pitch": 0.9,  "desk": 2,
+     "look": {"skin": "#d9a582", "hair": "short",    "hair_color": "#9a9a9a", "shirt": "#7a5a3f", "pants": "#3b3b3b", "tie": "",        "glasses": true,  "beard": "beard",    "build": 1.1,  "height": 1.0,  "skirt": false}},
+    {"id": "sophie",  "name": "Sophie",  "full_name": "Sophie Rossi",   "archetype": "observer",    "voice": "sophie",  "pitch": 1.0,  "desk": 3,
+     "look": {"skin": "#c98e6b", "hair": "long",     "hair_color": "#1c1714", "shirt": "#2f4f8f", "pants": "#22252e", "tie": "",        "glasses": true,  "beard": "",         "build": 0.92, "height": 0.98, "skirt": false}},
+    {"id": "kevin",   "name": "Kévin",   "full_name": "Kévin Petit",    "archetype": "naive",       "voice": "kevin",   "pitch": 1.1,  "desk": 4,
+     "look": {"skin": "#f0caa6", "hair": "messy",    "hair_color": "#d1a35a", "shirt": "#e07a2e", "pants": "#3d4f6e", "tie": "",        "glasses": false, "beard": "",         "build": 0.9,  "height": 1.02, "skirt": false}},
+    {"id": "nadia",   "name": "Nadia",   "full_name": "Nadia Benali",   "archetype": "opportunist", "voice": "nadia",   "pitch": 1.0,  "desk": 5,
+     "look": {"skin": "#a8704e", "hair": "curly",    "hair_color": "#241a14", "shirt": "#7d3f8c", "pants": "#1f1f24", "tie": "",        "glasses": false, "beard": "",         "build": 0.95, "height": 0.97, "skirt": false}},
+    {"id": "bernard", "name": "Bernard", "full_name": "Bernard Leroy",  "archetype": "coward",      "voice": "bernard", "pitch": 0.95, "desk": 6,
+     "look": {"skin": "#efc1a0", "hair": "short",    "hair_color": "#6b4a2b", "shirt": "#a9c4e0", "pants": "#4a4f57", "tie": "#2c3e66", "glasses": false, "beard": "",         "build": 1.2,  "height": 0.95, "skirt": false}},
+    {"id": "chloe",   "name": "Chloé",   "full_name": "Chloé Garnier",  "archetype": "serious",     "voice": "chloe",   "pitch": 1.05, "desk": 7,
+     "look": {"skin": "#f5d2b8", "hair": "ponytail", "hair_color": "#e3c36b", "shirt": "#f2f2f2", "pants": "#2a2a35", "tie": "",        "glasses": false, "beard": "",         "build": 0.9,  "height": 1.0,  "skirt": true}}
+  ],
+  "director": {"id": "boss", "name": "M. Lebrun", "full_name": "Gaston Lebrun", "voice": "boss", "pitch": 0.9,
+     "look": {"skin": "#e3ad8c", "hair": "slick", "hair_color": "#3a3a3a", "shirt": "#3a3f4a", "pants": "#3a3f4a", "tie": "#b81f2c", "glasses": false, "beard": "mustache", "build": 1.25, "height": 1.04, "skirt": false, "jacket": true}},
+  "player_default": {"id": "player", "name": "Toi", "voice": "player", "pitch": 1.0, "desk": 8,
+     "look": {"skin": "#e9bb98", "hair": "short", "hair_color": "#3b2a1e", "shirt": "#3fa7d6", "pants": "#2b2f3a", "tie": "", "glasses": false, "beard": "", "build": 1.0, "height": 1.0, "skirt": false}},
+  "relations": [
+    ["marcel", "gerard", 0.4], ["marcel", "kevin", -0.3], ["lucie", "kevin", 0.5], ["lucie", "nadia", 0.4],
+    ["gerard", "nadia", -0.5], ["sophie", "chloe", 0.5], ["kevin", "bernard", 0.3], ["nadia", "chloe", -0.3],
+    ["bernard", "marcel", -0.2], ["lucie", "player", 0.5], ["marcel", "player", -0.2], ["gerard", "player", 0.0]
+  ],
+  "director_profiles": {
+    "paranoid":     {"label": "Paranoïaque",  "desc": "Vérifie tout, souvent.",                 "suspicion_gain": 1.4, "decay": 0.6, "confront_level": 3, "hearing": 1.25, "patrol_rate": 1.3, "distraction_time": 0.6, "evidence_needed": 1, "inspect_bias": 0.7, "trap_bias": 0.1, "memory": 16},
+    "authoritarian":{"label": "Autoritaire",  "desc": "Organise des inspections surprises.",    "suspicion_gain": 1.1, "decay": 0.9, "confront_level": 4, "hearing": 1.0,  "patrol_rate": 1.0, "distraction_time": 0.8, "evidence_needed": 1, "inspect_bias": 1.0, "trap_bias": 0.0, "memory": 12},
+    "manipulator":  {"label": "Manipulateur", "desc": "Tend des pièges et écoute les rumeurs.", "suspicion_gain": 1.0, "decay": 1.0, "confront_level": 4, "hearing": 1.0,  "patrol_rate": 0.8, "distraction_time": 0.9, "evidence_needed": 2, "inspect_bias": 0.3, "trap_bias": 0.8, "memory": 14},
+    "distracted":   {"label": "Distrait",     "desc": "Facile à détourner, oublie vite.",        "suspicion_gain": 0.8, "decay": 1.6, "confront_level": 4, "hearing": 0.8,  "patrol_rate": 0.7, "distraction_time": 1.8, "evidence_needed": 1, "inspect_bias": 0.2, "trap_bias": 0.0, "memory": 6},
+    "methodical":   {"label": "Méthodique",   "desc": "Accumule des preuves avant d'accuser.",   "suspicion_gain": 1.0, "decay": 0.7, "confront_level": 5, "hearing": 1.0,  "patrol_rate": 1.0, "distraction_time": 1.0, "evidence_needed": 2, "inspect_bias": 0.5, "trap_bias": 0.2, "memory": 20}
+  }
+}

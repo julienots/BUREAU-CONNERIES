@@ -1,0 +1,37 @@
+{
+  "items": [
+    {"id": "canard",         "name": "Canard en plastique",   "price": 20,  "kind": "prop",     "contraband": 0.2, "uses": 1, "unlock": 0,  "icon": "canard",
+     "desc": "Un canard qui couine. Indispensable dans une salle de réunion.", "effect": "Objet insolite à placer. Couine quand on le serre (bruit léger)."},
+    {"id": "coussin_peteur", "name": "Coussin péteur",        "price": 60,  "kind": "trap",     "contraband": 0.8, "uses": 1, "unlock": 0,  "icon": "coussin_peteur",
+     "desc": "Le classique. Se pose sur une chaise.", "effect": "Bruit très fort quand quelqu'un s'assoit. Laisse une preuve sur place."},
+    {"id": "post_its",       "name": "Bloc de post-it",       "price": 10,  "kind": "tool",     "contraband": 0.0, "uses": 1, "unlock": 0,  "icon": "post_its",
+     "desc": "De quoi couvrir un écran entier.", "effect": "Recouvre l'écran d'un collègue (action longue, silencieuse)."},
+    {"id": "banane",         "name": "Peau de banane",        "price": 40,  "kind": "trap",     "contraband": 0.5, "uses": 1, "unlock": 1,  "icon": "banane",
+     "desc": "Physique élémentaire.", "effect": "Piège au sol : fait glisser la première personne pressée. Risque de chute."},
+    {"id": "buzzer",         "name": "Buzzer télécommandé",   "price": 80,  "kind": "remote",   "contraband": 0.6, "uses": 3, "unlock": 1,  "icon": "buzzer",
+     "desc": "Posez-le, éloignez-vous, déclenchez-le.", "effect": "Bruit fort à distance : diversion qui attire le directeur. 3 utilisations."},
+    {"id": "confettis",      "name": "Bombe à confettis",     "price": 120, "kind": "trap",     "contraband": 0.9, "uses": 1, "unlock": 2,  "icon": "confettis",
+     "desc": "À cacher dans un tiroir. Explose à l'ouverture.", "effect": "Explosion bruyante + confettis partout. Très drôle, très suspect."},
+    {"id": "moustache",      "name": "Fausse moustache",      "price": 150, "kind": "disguise", "contraband": 0.3, "uses": 1, "unlock": 2,  "icon": "moustache",
+     "desc": "Personne ne vous reconnaîtra. Probablement.", "effect": "90 s : les témoins éloignés ne vous identifient pas, ils décrivent « une moustache »."},
+    {"id": "sac_sport",      "name": "Sac de sport",          "price": 100, "kind": "passive",  "contraband": 0.0, "uses": 0, "unlock": 1,  "icon": "sac_sport",
+     "desc": "Transportez vos bêtises discrètement.", "effect": "Les petits objets portés sont cachés : plus de soupçons pour objet suspect."},
+    {"id": "talkie",         "name": "Talkie-walkie",         "price": 90,  "kind": "coop",     "contraband": 0.1, "uses": 0, "unlock": 2,  "icon": "talkie",
+     "desc": "Pour les opérations collectives.", "effect": "Demander une diversion à un complice à distance."},
+    {"id": "chapeau",        "name": "Chapeau melon",         "price": 70,  "kind": "cosmetic", "contraband": 0.0, "uses": 0, "unlock": 0,  "icon": "chapeau",
+     "desc": "La classe.", "effect": "Cosmétique."},
+    {"id": "lunettes",       "name": "Lunettes de soleil",    "price": 50,  "kind": "cosmetic", "contraband": 0.0, "uses": 0, "unlock": 0,  "icon": "lunettes",
+     "desc": "Au bureau. En hiver.", "effect": "Cosmétique."},
+    {"id": "cravate_or",     "name": "Cravate dorée",         "price": 200, "kind": "cosmetic", "contraband": 0.0, "uses": 0, "unlock": 1,  "icon": "cravate_or",
+     "desc": "Pour les employés du mois autoproclamés.", "effect": "Cosmétique."}
+  ],
+  "world_items": [
+    {"id": "sel",       "name": "Salière",                 "contraband": 0.3, "icon": "sel",       "desc": "Trouvée dans la cuisine."},
+    {"id": "marqueur",  "name": "Marqueur effaçable",      "contraband": 0.1, "icon": "marqueur",  "desc": "Pour le tableau blanc."},
+    {"id": "poisson",   "name": "Tupperware de poisson",   "contraband": 0.4, "icon": "poisson",   "desc": "Le déjeuner de Gérard. Ça sent déjà."},
+    {"id": "agrafeuse", "name": "Agrafeuse de Gérard",     "contraband": 0.6, "icon": "agrafeuse", "desc": "Rouge. Sacrée."},
+    {"id": "mug_boss",  "name": "Mug « Meilleur Chef »",   "contraband": 0.9, "icon": "mug",       "desc": "Le trésor du directeur."},
+    {"id": "cafe",      "name": "Tasse de café",           "contraband": 0.0, "icon": "cafe",      "desc": "Chaud. Peut-être salé."},
+    {"id": "dossier",   "name": "Dossier urgent",          "contraband": 0.0, "icon": "dossier",   "desc": "Excuse parfaite pour se promener."}
+  ]
+}
