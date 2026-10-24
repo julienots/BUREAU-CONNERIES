@@ -14,6 +14,7 @@ signal interrogation_finished(info: Dictionary)
 signal day_over(results: Dictionary)
 signal hud_changed
 signal ui_request(kind: String, info: Dictionary)
+signal game_event_emitted(type: String, data: Dictionary)
 
 const MAX_SHEETS := 45
 const INTERACT_RANGE := 2.6
@@ -64,6 +65,9 @@ var bribes: Dictionary = {}
 var day_failed := false
 var _ended := false
 var net: Node = null                # NetSync when multiplayer
+var quiet_until := 0.0              # ignore settling noises right after spawn
+var _cardboard_hits: Array = []
+var _last_crash := -100.0
 
 
 func is_authority() -> bool:
@@ -97,6 +101,11 @@ func setup(p_mode: String, args: Dictionary) -> void:
 	_clock = world.get_meta("clock", {})
 	day.setup(float(args.get("day_minutes", Settings.get_v("day_minutes"))))
 	day.meeting_changed.connect(_on_meeting_changed)
+	day.lunch_changed.connect(func(on):
+		if on:
+			notify_all("Pause déjeuner ! La salle de pause va se remplir.", "event")
+		for id in brains:
+			brains[id].on_schedule_changed())
 	day.finished.connect(func(): end_day(false))
 	events.rng.seed = seed_value + 3
 	events.started.connect(_on_event_started)
@@ -106,6 +115,7 @@ func setup(p_mode: String, args: Dictionary) -> void:
 			(p as Prop).remote = true
 			(p as Prop).freeze = true
 	Game.set_session(self)
+	quiet_until = now() + 4.0
 	llm = LlmProvider.new()
 	llm.barks = barks
 	add_child(llm)
@@ -119,7 +129,7 @@ func spawn_cast(humans: Dictionary, npc_limit: int) -> void:
 	var boss_human: bool = humans.has("boss")
 	var bd: Dictionary = Data.director
 	director = _spawn_char("boss", bd.name, "director", bd.look, bd.voice, float(bd.pitch), {}, not boss_human and is_authority())
-	director.global_position = world.desk_of("boss").get("seat", Vector3(19, 0, 7)) + Vector3(-0.8, 0, 0)
+	director.global_position = world.desk_of("boss").get("seat", Vector3(19, 0, 7)) + Vector3(-1.6, 0, 1.6)
 	if boss_human:
 		human_ids.append("boss")
 		director.nick = humans.boss.get("name", bd.name)
@@ -135,7 +145,7 @@ func spawn_cast(humans: Dictionary, npc_limit: int) -> void:
 		ch.archetype = c.archetype
 		ch.desk_index = int(c.desk)
 		var d := world.desk_of(c.id)
-		ch.global_position = d.seat + d.facing * -0.9 if not d.is_empty() else Vector3.ZERO
+		ch.global_position = d.seat + d.facing * -1.25 if not d.is_empty() else Vector3.ZERO
 		all_ids.append(c.id)
 		if is_authority():
 			var b := CoworkerBrain.new()
@@ -153,7 +163,7 @@ func spawn_cast(humans: Dictionary, npc_limit: int) -> void:
 		ch.desk_index = desk_i
 		_assign_desk(hid, desk_i)
 		var d := world.desk_of(hid)
-		ch.global_position = d.seat + d.facing * -1.0 if not d.is_empty() else Vector3(-16, 0, 6)
+		ch.global_position = d.seat + d.facing * -1.3 if not d.is_empty() else Vector3(-16, 0, 6)
 		human_ids.append(hid)
 		all_ids.append(hid)
 		human_memory[hid] = Memory.new(20)
@@ -390,6 +400,7 @@ func npc_say(c: Character, text: String, emotion := "neutral") -> void:
 func game_event(type: String, d: Dictionary) -> void:
 	for ms in missions.values():
 		ms.on_event(type, d)
+	game_event_emitted.emit(type, d)
 
 
 func on_suspicion_changed(id: String) -> void:
@@ -431,7 +442,7 @@ func emit_sound(pos: Vector3, loud: float, sfx: String, actor_id: String, source
 		SoundFx.play_at(sfx, pos, loud)
 		if net and is_authority():
 			net.broadcast_sound(sfx, pos, loud)
-	if not is_authority():
+	if not is_authority() or now() < quiet_until:
 		return
 	if kind == "":
 		kind = SFX_KIND.get(sfx, "")
@@ -455,6 +466,16 @@ func emit_sound(pos: Vector3, loud: float, sfx: String, actor_id: String, source
 		ev["loud"] = loud
 	if loud >= 12.0:
 		_propagate(ev)
+	if sfx == "hit_cardboard":
+		_cardboard_hits.append([now(), pos, by])
+		_cardboard_hits = _cardboard_hits.filter(func(x): return now() - float(x[0]) < 1.6)
+		if _cardboard_hits.size() >= 3 and now() - _last_crash > 8.0:
+			_last_crash = now()
+			var who := ""
+			for x in _cardboard_hits:
+				if String(x[2]) != "":
+					who = x[2]
+			emit_sound(pos, 82.0, "boxes_crash", who, source_ent, "crash")
 	if kind != "footstep":
 		game_event("sound", {"sfx": sfx, "kind": kind, "zone": zone, "loud": loud, "by": by})
 
@@ -780,6 +801,7 @@ func _self_action(actor: Character, action_id: String, params: Dictionary) -> Di
 			if actor == player:
 				SoundFx.ui("cash_register")
 			notify(actor, "Acheté : " + Data.item_name(item), "good")
+			game_event("bought", {"actor": actor.id, "item": item})
 		"call_phone_self":
 			pass
 		_:

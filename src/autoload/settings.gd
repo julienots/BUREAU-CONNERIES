@@ -165,7 +165,10 @@ func key_label(action: String) -> String:
 	var code := int(arr[0])
 	if code < 0:
 		return {MOUSE_BUTTON_LEFT: "Clic G", MOUSE_BUTTON_RIGHT: "Clic D", MOUSE_BUTTON_MIDDLE: "Clic M"}.get(-code, "Souris")
-	return OS.get_keycode_string(DisplayServer.keyboard_get_keycode_from_physical(code as Key))
+	# map the physical key to the user's layout (AZERTY shows Z/Q instead of W/A) when supported
+	if DisplayServer.get_name() in ["Windows", "macOS", "X11", "Wayland"]:
+		return OS.get_keycode_string(DisplayServer.keyboard_get_keycode_from_physical(code as Key))
+	return OS.get_keycode_string(code as Key)
 
 
 func apply_audio() -> void:

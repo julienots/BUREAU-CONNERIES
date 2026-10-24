@@ -189,7 +189,7 @@ func _on_body_entered(body: Node) -> void:
 		return
 	var s: String = names[1] if heavy else names[0]
 	var sess := Game.session
-	if sess:
+	if sess and now >= float(sess.quiet_until):
 		sess.emit_sound(global_position, loud, s, last_touched_by if now - last_touched_time < 6.0 else "", ent_id())
 
 

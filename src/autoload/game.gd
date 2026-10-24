@@ -5,17 +5,21 @@ signal session_changed
 
 var session: Node = null          # current Session (authority or client replica)
 var start_args: Dictionary = {}   # parameters for the next game scene (mode, role...)
-var _t0 := 0
+var _now := 0.0
 
 
 func _ready() -> void:
-	_t0 = Time.get_ticks_msec()
-	process_mode = Node.PROCESS_MODE_ALWAYS
+	process_mode = Node.PROCESS_MODE_PAUSABLE
 
 
-## Seconds since boot (monotonic). Gameplay timestamps use this.
+func _physics_process(delta: float) -> void:
+	_now += delta
+
+
+## Game time in seconds (scaled by Engine.time_scale, frozen while paused).
+## All gameplay timestamps use this clock.
 func time() -> float:
-	return (Time.get_ticks_msec() - _t0) / 1000.0
+	return _now
 
 
 func set_session(s: Node) -> void:

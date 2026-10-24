@@ -71,7 +71,12 @@ func _think(dt: float) -> void:
 	_run_state(dt)
 
 
+var debug := false
+
+
 func _switch(st: String, d := {}) -> void:
+	if debug:
+		print("    [%s] %s -> %s (step %d) %s" % [c.id, state, st, step, get_stack()[1].function if get_stack().size() > 1 else ""])
 	if state == "work" and st != "work" and c.seated_on:
 		c.stand_up()
 	if state in ["meeting", "lunch", "slack_sofa", "work"] and c.seated_on and st != state:
@@ -290,14 +295,16 @@ func _st_poi(kind: String, dur: float, what: String) -> void:
 		0:
 			var p: Dictionary = s.world.claim_poi(kind, c.id, c.global_position)
 			if p.is_empty():
-				_switch("wander")
+				# occupied: come back later, meanwhile do something useful
+				needs[what if needs.has(what) else "social"] = maxf(0.0, float(needs.get(what, 0.0)) - 0.25)
+				_switch("work")
 				return
 			data.poi = p
 			c.go_to(p.pos)
 			step = 1
 			timer = 40.0
 		1:
-			if c.arrived(0.6):
+			if c.arrived(0.6) or (timer <= 0.0 and c.global_position.distance_to(data.poi.pos) < 3.0):
 				c.face_dir = data.poi.facing
 				timer = dur
 				step = 2
@@ -307,6 +314,9 @@ func _st_poi(kind: String, dur: float, what: String) -> void:
 					if cm:
 						s.emit_sound(cm.interact_point(), 40.0, "coffee_machine", "", cm.ent_id(), "coffee")
 			elif timer <= 0.0:
+				# could not get there: give up for a while
+				if needs.has(what):
+					needs[what] = maxf(0.0, float(needs[what]) - 0.5)
 				_switch("idle")
 		2:
 			if timer <= 0.0:
@@ -760,9 +770,19 @@ func believe_meeting_moved() -> void:
 
 func on_meeting_started() -> void:
 	if believes_meeting_moved:
-		s.npc_reaction(c, "wrong_meeting", {})
+		s.npc_reaction(c, "wrong_meeting", {"by": c.get_meta("lied_by", s.find_device("planning").state.get("by", "") if s.find_device("planning") else "")})
 		if rng.randf() < 0.5:
 			_switch("wrong_meeting")
+		return
+	if state in ["report", "diversion"] or c.is_down():
+		return
+	_switch("meeting")
+
+
+## Lunch starts/ends: drop the current routine activity.
+func on_schedule_changed() -> void:
+	if state in ["work", "wander", "chat", "printer", "idle", "lunch"] and not c.is_down():
+		_switch("idle")
 
 
 func react_to(what: String, cat: String, emotion: String, dur := 2.5, look_pos := Vector3.INF) -> void:

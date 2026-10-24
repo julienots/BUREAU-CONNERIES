@@ -256,7 +256,9 @@ func _physics_process(delta: float) -> void:
 			stand_up()
 		else:
 			var b := seated_on.global_basis
-			global_position = seated_on.global_position + b * Vector3(0, 0.0, 0.04)
+			var sp := seated_on.global_position + b * Vector3(0, 0.0, 0.04)
+			sp.y = seated_on.global_position.y if seated_on.global_position.y < 0.3 else 0.0
+			global_position = sp
 			var f := -b.z
 			f.y = 0
 			if f.length() > 0.1:
@@ -264,6 +266,10 @@ func _physics_process(delta: float) -> void:
 			velocity = Vector3.ZERO
 			_anim(delta, 0.0)
 			return
+	if kd == KD.FALLING or kd == KD.FALLEN or kd == KD.GETUP:
+		velocity = Vector3.ZERO
+		_anim(delta, 0.0)
+		return
 	var dir := move_dir
 	if ai_driven and nav_target != Vector3.INF and kd == KD.OK:
 		var nxt := nav.get_next_path_position()
@@ -322,6 +328,28 @@ func _physics_process(delta: float) -> void:
 			_stuck_t = 0.0
 	_anim(delta, moved)
 	_update_hold()
+	_unstick(delta)
+
+
+var _high_t := 0.0
+
+
+## Safety net: never stay perched on furniture/props (e.g. after a physics shove).
+func _unstick(delta: float) -> void:
+	if global_position.y > 0.35 and kd == KD.OK and seated_on == null:
+		_high_t += delta
+		if _high_t > 0.8 and Game.session:
+			_high_t = 0.0
+			var p: Vector3 = Game.session.world.nav_closest(global_position)
+			p.y = 0.02
+			global_position = p
+			velocity = Vector3.ZERO
+	else:
+		_high_t = 0.0
+	if global_position.y < -2.0 and Game.session:
+		var p2: Vector3 = Game.session.world.nav_closest(Vector3(global_position.x, 0, global_position.z))
+		global_position = p2 + Vector3(0, 0.05, 0)
+		velocity = Vector3.ZERO
 
 
 func _anim(delta: float, moved: float) -> void:
@@ -408,7 +436,7 @@ func _handle_collisions(hv: Vector3) -> void:
 
 # ------------------------------------------------------------------ knockdowns
 func take_hit(impulse: Vector3, source: Node) -> void:
-	if is_down() or (Game.session and not Game.session.is_authority()):
+	if is_down() or (Game.session and (not Game.session.is_authority() or Game.time() < float(Game.session.quiet_until))):
 		return
 	var mag := impulse.length()
 	var by := ""
@@ -445,6 +473,8 @@ func stumble(cause: String, by: String) -> void:
 func slip(cause: String, by: String) -> void:
 	if is_down() or seated_on:
 		return
+	if by == id:
+		by = ""
 	Game.session.emit_sound(global_position, 30.0, "slip_whoosh", "", "")
 	knock_down(cause, by, 1.0)
 
@@ -510,6 +540,7 @@ func sit_on(chair: Prop) -> bool:
 		drop_held(Vector3.ZERO)
 	stop()
 	seated_on = chair
+	add_collision_exception_with(chair)
 	chair.on_sat(self)
 	velocity = Vector3.ZERO
 	return true
@@ -527,9 +558,15 @@ func stand_up() -> void:
 		var out := chair.global_position + f.normalized() * 0.45
 		out.y = global_position.y
 		chair.on_stood()
+		out.y = 0.0
+		if Game.session and ai_driven:
+			out = Game.session.world.nav_closest(out)
 		global_position = out
-		if Game.session:
-			global_position = Game.session.world.nav_closest(out) if ai_driven else out
+		velocity = Vector3.ZERO
+		# keep ignoring the chair until we are clear of it
+		get_tree().create_timer(1.2).timeout.connect(func():
+			if is_instance_valid(chair) and seated_on != chair:
+				remove_collision_exception_with(chair))
 
 
 func pick_up(p: Prop) -> bool:
@@ -538,6 +575,7 @@ func pick_up(p: Prop) -> bool:
 	if seated_on:
 		stand_up()
 	held = p
+	add_collision_exception_with(p)
 	p.begin_hold(self)
 	return true
 
@@ -548,6 +586,9 @@ func drop_held(impulse: Vector3) -> void:
 	var p := held
 	held = null
 	p.end_hold()
+	get_tree().create_timer(0.6).timeout.connect(func():
+		if is_instance_valid(p) and held != p and seated_on != p:
+			remove_collision_exception_with(p))
 	if impulse != Vector3.ZERO:
 		p.apply_central_impulse(impulse)
 	p.touch(self)

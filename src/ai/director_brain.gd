@@ -208,7 +208,8 @@ func _scan_anomalies() -> void:
 		var f := Perception.view_dir(c)
 		if f.dot(Vector3(to.x, 0, to.z).normalized()) < cos(deg_to_rad(_current_fov() * 0.5)):
 			continue
-		if not s.world.line_clear(eye, p, [c.get_rid()]):
+		var excl: Array[RID] = [c.get_rid()]
+		if not s.world.line_clear(eye, p, excl):
 			continue
 		noticed[id] = true
 		_on_anomaly(e, issue)

@@ -255,10 +255,10 @@ func _walls() -> void:
 	_wall(14, 2, 22, 2)
 	# toilet stalls
 	for x in [-10.0, -8.0]:
-		_seg(x, -14, x, -12.4, 0.1, 2.1, Mats.color(Color(0.55, 0.68, 0.75), 0.4), Layers.STATIC | Layers.OCCLUDERS, false)
-	_seg(-12, -12.4, -11.5, -12.4, 0.1, 2.1, Mats.color(Color(0.55, 0.68, 0.75), 0.4), Layers.STATIC | Layers.OCCLUDERS, false)
-	_seg(-10.4, -12.4, -9.6, -12.4, 0.1, 2.1, Mats.color(Color(0.55, 0.68, 0.75), 0.4), Layers.STATIC | Layers.OCCLUDERS, false)
-	_seg(-8.4, -12.4, -8.0, -12.4, 0.1, 2.1, Mats.color(Color(0.55, 0.68, 0.75), 0.4), Layers.STATIC | Layers.OCCLUDERS, false)
+		_seg(x, -14, x, -12.0, 0.1, 2.1, Mats.color(Color(0.55, 0.68, 0.75), 0.4), Layers.STATIC | Layers.OCCLUDERS, false)
+	_seg(-12, -12.0, -11.5, -12.0, 0.1, 2.1, Mats.color(Color(0.55, 0.68, 0.75), 0.4), Layers.STATIC | Layers.OCCLUDERS, false)
+	_seg(-10.4, -12.0, -9.6, -12.0, 0.1, 2.1, Mats.color(Color(0.55, 0.68, 0.75), 0.4), Layers.STATIC | Layers.OCCLUDERS, false)
+	_seg(-8.4, -12.0, -8.0, -12.0, 0.1, 2.1, Mats.color(Color(0.55, 0.68, 0.75), 0.4), Layers.STATIC | Layers.OCCLUDERS, false)
 	# two pillars in the open space
 	for p in [Vector3(-11.5, 1.5, 4.9), Vector3(2.0, 1.5, 4.9)]:
 		MeshKit.add(root, MeshKit.rounded_box(Vector3(0.6, H, 0.6), 0.03, 2, 0.5), Mats.textured("concrete", 0.5, 0.6), p)
@@ -411,6 +411,8 @@ func _break_room() -> void:
 	var cm := Furniture.coffee_machine(root, Vector3(16.6, 0.9, -13.6), 180)
 	_device(cm, "coffee", "Machine à café", "", Vector3(0, 0.2, -0.55))
 	w.add_poi("coffee", Vector3(16.6, 0, -12.6), Vector3.FORWARD)
+	w.add_poi("coffee", Vector3(15.7, 0, -12.2), Vector3(0.6, 0, -0.8).normalized())
+	w.add_poi("coffee", Vector3(17.5, 0, -12.2), Vector3(-0.6, 0, -0.8).normalized())
 	var mw := Furniture.microwave(root, Vector3(18.0, 0.9, -13.6), 180)
 	_device(mw, "microwave", "Micro-ondes", "", Vector3(0, 0.15, -0.55))
 	var rd := Furniture.radio(root, Vector3(13.5, 0.9, -13.6), 180)
@@ -450,7 +452,7 @@ func _toilets() -> void:
 	for x in [-11.0, -9.0]:
 		var t := Furniture.toilet(root, Vector3(x, 0, -13.55), 180)
 		_device(t, "toilet", "Toilettes", "", Vector3(0, 0.6, -0.7))
-		w.add_poi("toilet", Vector3(x, 0, -12.9), Vector3.BACK)
+		w.add_poi("toilet", Vector3(x, 0, -12.7), Vector3.BACK)
 	for z in [-12.8, -11.2]:
 		var s := Furniture.sink(root, Vector3(-6.35, 0, z), 90)
 		_device(s, "sink", "Lavabo", "", Vector3(0, 0.9, -0.5))
