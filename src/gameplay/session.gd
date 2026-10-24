@@ -906,6 +906,15 @@ func cushion_triggered(sitter: Character, cushion: Prop, chair: Prop) -> void:
 	get_tree().create_timer(4.0).timeout.connect(func(): despawn_prop(cushion))
 
 
+func low_seat_triggered(sitter: Character, chair: Prop) -> void:
+	var a := act_for_entity(chair.ent_id())
+	emit_sound(chair.global_position, 40.0, "chair_squeak", "", chair.ent_id())
+	sitter.do_emote("surprised", 2.0)
+	if not sitter.is_player:
+		npc_say(sitter, barks.pick("victim_lowseat"), "surprised")
+	npc_reaction(sitter, "low_seat_drop", {"by": String(a.get("actor", "")) if not a.is_empty() else ""})
+
+
 func give_coffee(actor: Character, machine: Device) -> void:
 	if actor.is_player or actor in human_list():
 		if not actor.add_item("cafe"):

@@ -221,7 +221,7 @@ func _on_anomaly(e: Node, issue: String) -> void:
 	if issue == "caricature":
 		_bark("boss_caricature", "angry")
 		c.do_emote("angry", 3.0)
-		s.npc_reaction(c, "saw_caricature", {})
+		s.npc_reaction(c, "saw_caricature", {"by": String((e as Device).state.get("by", "")) if e is Device else ""})
 	else:
 		_bark("boss_anomaly", "suspicious")
 		c.do_emote("suspicious", 2.5)

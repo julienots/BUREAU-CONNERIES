@@ -306,6 +306,8 @@ func perform(actor: Node, action: String, params: Dictionary) -> Dictionary:
 func on_sat(by: Node) -> void:
 	occupant = by.char_id()
 	freeze = true
+	if seat_low and Game.session:
+		Game.session.low_seat_triggered(by, self)
 	if cushion_id != "":
 		var cush := Game.session.world.ent(cushion_id) as Prop
 		cushion_id = ""
@@ -314,6 +316,11 @@ func on_sat(by: Node) -> void:
 
 
 func on_stood() -> void:
+	if seat_low and occupant == owner_id and occupant != "":
+		# the victim fixes the seat height when getting up
+		seat_low = false
+		if seat_mesh:
+			seat_mesh.position.y += 0.18
 	occupant = ""
 	freeze = false
 	sleeping = false

@@ -149,7 +149,7 @@ func _tab_controls() -> Control:
 func _tab_game() -> Control:
 	var v := _page("Jeu")
 	_slider(v, "Durée d'une journée (minutes réelles)", "day_minutes", 4.0, 20.0, 1.0)
-	_slider(v, "Nombre de collègues (PNJ)", "npc_count", 3.0, 7.0, 1.0)
+	_slider(v, "Nombre de collègues (PNJ)", "npc_count", 3.0, 8.0, 1.0)
 	_slider(v, "Difficulté (soupçons)", "difficulty", 0.5, 1.5, 0.1)
 	_slider(v, "Mémoire du directeur", "boss_memory", 0.5, 1.5, 0.1)
 	v.add_child(UiKit.label("IA générative locale (facultatif)", 18, UiKit.YELLOW, true))

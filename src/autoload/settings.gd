@@ -12,7 +12,7 @@ var values := {
 	"shadows": true,
 	"ssao": true,
 	"glow": true,
-	"npc_count": 7,
+	"npc_count": 8,
 	"vol_master": 0.9,
 	"vol_music": 0.45,
 	"vol_sfx": 0.9,
