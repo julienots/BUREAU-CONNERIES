@@ -4,7 +4,7 @@ extends Node
 
 signal saved
 
-const PATH := "user://office_mayhem_save.json"
+var PATH := "user://office_mayhem_save.json"
 const VERSION := 2
 
 var data: Dictionary = {}
@@ -12,6 +12,12 @@ var data: Dictionary = {}
 
 func _ready() -> void:
 	load_game()
+
+
+## Tests use their own file so they never touch the player's progression.
+func use_test_file() -> void:
+	PATH = "user://test_save.json"
+	data = default_data()
 
 
 func default_data() -> Dictionary:

@@ -16,7 +16,10 @@ func _ready() -> void:
 		elif a.begins_with("--secs="):
 			secs = float(a.substr(7))
 	DirAccess.make_dir_recursive_absolute(out)
+	SaveGame.use_test_file()
 	Settings.values.tutorial_done = true
+	if "--low" in OS.get_cmdline_user_args():
+		Settings.values.quality = "low"
 	if "--touch" in OS.get_cmdline_user_args():
 		Settings.values.touch_controls = "on"
 	Settings.values.day_minutes = 6.0

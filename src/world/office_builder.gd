@@ -135,6 +135,10 @@ func _floors_and_ceilings() -> void:
 		# ceiling, visible from below only
 		var cm := Mats.textured("ceiling", 1.0, 0.9, 0.0, false).duplicate() as StandardMaterial3D
 		cm.uv1_scale = Vector3(r.size.x / 1.2, r.size.y / 1.2, 1)
+		# light panels bounce light onto the ceiling; fake it (cheap on mobile)
+		cm.emission_enabled = true
+		cm.emission = Color(0.85, 0.85, 0.82)
+		cm.emission_energy_multiplier = 0.45 if quality == "low" else 0.15
 		var pm := PlaneMesh.new()
 		pm.size = r.size
 		pm.flip_faces = true

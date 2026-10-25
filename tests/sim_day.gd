@@ -19,6 +19,7 @@ func _ready() -> void:
 			secs = float(a.substr(7))
 		elif a.begins_with("--scale="):
 			scale = float(a.substr(8))
+	SaveGame.use_test_file()
 	Settings.values.tutorial_done = true
 	Settings.values.day_minutes = 9.0
 	Engine.time_scale = scale

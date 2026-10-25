@@ -12,6 +12,7 @@ var log_events: Array = []
 
 
 func _ready() -> void:
+	SaveGame.use_test_file()
 	Settings.values.tutorial_done = true
 	Settings.values.day_minutes = 20.0
 	SaveGame.data = SaveGame.default_data()

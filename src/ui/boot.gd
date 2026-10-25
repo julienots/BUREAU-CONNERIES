@@ -28,6 +28,7 @@ func _ready() -> void:
 	studio.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	studio.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	studio.offset_bottom = -150
+	studio.offset_top = -200
 	studio.modulate.a = 0.0
 	add_child(studio)
 	var presents := UiKit.label("présente", 22, UiKit.MUTED)
@@ -35,6 +36,7 @@ func _ready() -> void:
 	presents.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	presents.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	presents.offset_bottom = -100
+	presents.offset_top = -140
 	presents.modulate.a = 0.0
 	add_child(presents)
 	SoundFx.music("studio_jingle", 0.05)

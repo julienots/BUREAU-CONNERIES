@@ -40,16 +40,16 @@ func _ready() -> void:
 	grad.offset_right = 760
 	grad.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	ui.add_child(grad)
-	var v := UiKit.vbox(12)
-	v.position = Vector2(70, 60)
+	var v := UiKit.vbox(6)
+	v.position = Vector2(70, 26)
 	ui.add_child(v)
-	var title := UiKit.label("OFFICE", 92, Color.WHITE, true)
+	var title := UiKit.label("OFFICE", 78, Color.WHITE, true)
 	v.add_child(title)
-	var title2 := UiKit.label("MAYHEM", 92, UiKit.YELLOW, true)
+	var title2 := UiKit.label("MAYHEM", 78, UiKit.YELLOW, true)
 	title2.position.y -= 30
 	v.add_child(title2)
 	v.add_child(UiKit.label("Bêtises, mensonges et chaises qui roulent.", 20, UiKit.MUTED))
-	main_box = UiKit.vbox(10)
+	main_box = UiKit.vbox(8)
 	v.add_child(main_box)
 	main_box.add_child(UiKit.button("Jouer en solo", _solo, 340))
 	main_box.add_child(UiKit.button("Jouer en ligne", func(): _online(""), 340))
@@ -82,8 +82,8 @@ func _refresh_money() -> void:
 
 
 func _pose_cast() -> void:
-	var spots := [[Vector3(-15.2, 0, 3.9), 160.0, Data.coworkers[1]], [Vector3(-16.6, 0, 3.6), 200.0, Data.coworkers[4]],
-		[Vector3(-12.5, 0, 4.4), -100.0, Data.director], [Vector3(-7.5, 0, 3.6), 180.0, Data.coworkers[0]]]
+	var spots := [[Vector3(7.0, 0, 5.4), 200.0, Data.coworkers[1]], [Vector3(6.0, 0, 4.6), 150.0, Data.coworkers[4]],
+		[Vector3(8.6, 0, 4.4), -110.0, Data.director], [Vector3(7.6, 0, 3.6), 10.0, Data.coworkers[0]]]
 	for s in spots:
 		var h := Humanoid.new()
 		add_child(h)
@@ -96,14 +96,14 @@ func _pose_cast() -> void:
 		(hs[0] as Humanoid).emote = "laugh"
 		(hs[1] as Humanoid).emote = "panic"
 		(hs[2] as Humanoid).emote = "suspicious"
-		(hs[2] as Humanoid).look_target = Vector3(-15.8, 1.5, 3.6)
+		(hs[2] as Humanoid).look_target = Vector3(6.0, 1.5, 4.6)
 		(hs[3] as Humanoid).typing = true
 
 
 func _process(delta: float) -> void:
 	_t += delta * 0.05
-	var center := Vector3(-13.0, 0.8, 3.6)
-	cam.global_position = center + Vector3(cos(_t) * 7.5, 2.6 + sin(_t * 0.7) * 0.4, sin(_t) * 7.5)
+	var center := Vector3(7.3, 0.8, 4.6)
+	cam.global_position = center + Vector3(cos(_t) * 4.6, 1.5 + sin(_t * 0.7) * 0.3, sin(_t) * 4.0)
 	cam.look_at(center + Vector3(0, 0.3, 0), Vector3.UP)
 
 
