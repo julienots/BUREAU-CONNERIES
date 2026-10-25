@@ -12,7 +12,8 @@ var values := {
 	"shadows": true,
 	"ssao": true,
 	"glow": true,
-	"npc_count": 8,
+	"npc_count": 12,
+	"settings_version": 2,
 	"vol_master": 0.9,
 	"vol_music": 0.45,
 	"vol_sfx": 0.9,
@@ -83,6 +84,8 @@ func set_v(key: String, v: Variant, save := true) -> void:
 
 func load_settings() -> void:
 	var cfg := ConfigFile.new()
+	if is_mobile():
+		values.npc_count = 10   # phones: a bit lighter by default (up to 14 in the settings)
 	if cfg.load(PATH) != OK:
 		return
 	for k in values.keys():
@@ -90,6 +93,11 @@ func load_settings() -> void:
 			var v: Variant = cfg.get_value("settings", k)
 			if typeof(v) == typeof(values[k]) or (typeof(values[k]) == TYPE_FLOAT and typeof(v) == TYPE_INT):
 				values[k] = v
+	if int(cfg.get_value("settings", "settings_version", 1)) < 2:
+		# v2: 14 coworkers instead of 8 -> old saves at the old maximum get the new default
+		if int(values.npc_count) >= 8:
+			values.npc_count = 10 if is_mobile() else 12
+		values.settings_version = 2
 	for a in DEFAULT_KEYS.keys():
 		if cfg.has_section_key("keys", a):
 			var arr: Variant = cfg.get_value("keys", a)

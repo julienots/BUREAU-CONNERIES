@@ -137,6 +137,9 @@ func _choose_activity() -> void:
 	if day.lunch_active:
 		_switch("lunch")
 		return
+	if s.pdg_active() and rng.randf() < 0.85:
+		_switch("work")   # the CEO is in the building: everybody looks busy
+		return
 	if s.events.active("croissants") and rng.randf() < 0.7:
 		_switch("go_zone", {"zone": "break", "dur": 25.0, "emote": "drink", "cat": "croissants"})
 		return

@@ -9,6 +9,7 @@ Usage:  python3 tools/gen_audio.py            (needs numpy, espeak-ng, sox)
 Output: assets/audio/{sfx,voices,music}/*.wav
 """
 import os
+import sys
 import random
 import subprocess
 import tempfile
@@ -351,6 +352,33 @@ def gen_sfx():
     for k in range(10):
         place(x, bandpass_fast(noise(0.05), 2500, 8000) * env_ad(int(0.05 * SR), 0.002, 0.03), k * 0.08)
     save("scratch", x, 0.5)
+    gen_meeting_sfx()
+
+
+def gen_meeting_sfx():
+    """Meeting antics and cartoon physics (also runnable alone: python3 tools/gen_audio.py extra)."""
+    # snore: 2 cycles of rumbling inhale + whistling exhale
+    x = silence(3.2)
+    for k in range(2):
+        tt = t_axis(0.9)
+        rumble = lowpass_fast(noise(0.9), 300) * (0.5 + 0.5 * np.sign(np.sin(2 * np.pi * 28 * tt))) * np.sin(np.pi * tt / 0.9) ** 2
+        place(x, rumble * 1.4, k * 1.6)
+        tw = t_axis(0.5)
+        whistle = tone(lambda q: 1100 - 500 * q / 0.5, 0.5) * np.sin(np.pi * tw / 0.5) ** 2 * 0.25
+        place(x, whistle, k * 1.6 + 0.95)
+    save("snore", x, 0.7)
+    # office chair spinning: fast squeaky ratchet
+    x = np.zeros(int(1.6 * SR))
+    for k in range(24):
+        f = 900 + 400 * np.sin(k * 0.7)
+        place(x, resonant_hit([f, f * 1.5], 0.06, 0.03, 0.1, 400) * (1.0 - k / 30), k * 0.062)
+    save("chair_spin", x, 0.5)
+    # slide whistles (cartoon falls / flights)
+    tt = t_axis(0.7)
+    save("slide_down", tone(lambda q: 1600 * (1 - 0.75 * q / 0.7), 0.7) * env_ad(len(tt), 0.02, 0.6, 1.0) * (1 + 0.15 * np.sin(2 * np.pi * 6 * tt)), 0.6)
+    save("slide_up", tone(lambda q: 400 + 1300 * q / 0.7, 0.7) * env_ad(len(tt), 0.02, 0.6, 1.0) * (1 + 0.15 * np.sin(2 * np.pi * 6 * tt)), 0.6)
+    # paper ball flick
+    save("flick", mix(click(2200, 0.03), rustle(0.15, 300, 2500, 8000) * 0.6), 0.5)
 
 
     # UI ---------------------------------------------------------------------
@@ -540,6 +568,9 @@ def gen_voices():
 
 
 if __name__ == "__main__":
+    if len(sys.argv) > 1 and sys.argv[1] == "extra":
+        gen_meeting_sfx()
+        sys.exit(0)
     gen_sfx()
     gen_music()
     gen_voices()

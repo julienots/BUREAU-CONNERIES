@@ -87,6 +87,8 @@ func setup(controller: PlayerController) -> void:
 	_br(throw_btn, -520, -220)
 	stand_btn = _btn("Se lever", func(): _do(func(): pc.session.request_action(pc.ch, pc.ch.id, "stand")), Vector2(150, 84))
 	_br(stand_btn, -520, -120)
+	for b in [drop_btn, throw_btn, stand_btn]:
+		b.add_to_group("ctx_btn")   # the HUD keeps its action list clear of these
 	# (the pause button lives in the HUD top bar, next to BOUTIQUE)
 	for b in [action_btn, prev_btn, next_btn, crouch_btn, drop_btn, throw_btn, stand_btn]:
 		root.add_child(b)

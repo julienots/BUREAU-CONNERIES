@@ -47,7 +47,7 @@ func wait(t: float) -> void:
 
 
 func tp(pos: Vector3) -> void:
-	p.global_position = s.world.nav_closest(pos)
+	p.global_position = s.world.nav_closest(Vector3(pos.x, 0, pos.z))
 	p.velocity = Vector3.ZERO
 	await wait(0.2)
 	for i in 20:
@@ -100,8 +100,8 @@ func _run() -> void:
 	await tp(chair.global_position - d.facing * -0.8)
 	r = await act(d.chair_id, "hold")
 	check("hold chair", p.held == chair, str(r))
-	p.move_dir = Vector3(0, 0, 1)
-	for i in 8:
+	p.move_dir = Vector3(1, 0, 0.15).normalized()   # along the aisle (desk 9-14 are occupied now)
+	for i in 9:
 		await wait(0.5)
 		print("    drag t=%.1f player=%s held=%s chair=%s vel=%s" % [i * 0.5, p.global_position.snapped(Vector3.ONE * 0.01), p.held != null, chair.global_position.snapped(Vector3.ONE * 0.01), p.velocity.snapped(Vector3.ONE * 0.01)])
 	p.move_dir = Vector3.ZERO

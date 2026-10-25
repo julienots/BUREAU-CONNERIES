@@ -69,6 +69,8 @@ static func make(kind: String) -> Prop:
 			_duck(p, vis)
 			p.display = "Canard en plastique"
 			p.tags.append("duck")
+			pm.bounce = 0.8
+			pm.friction = 0.4
 		"cushion":
 			MeshKit.add(vis, MeshKit.sphere(0.16, 16, 0.25), Mats.color(Color(0.95, 0.4, 0.6), 0.5))
 			MeshKit.add(vis, MeshKit.cylinder(0.025, 0.06, 8), Mats.color(Color(0.95, 0.4, 0.6), 0.5), Vector3(0, 0, 0.17), Vector3(90, 0, 0))
@@ -147,6 +149,20 @@ static func make(kind: String) -> Prop:
 			p.mat_kind = "plastic"
 			p.display = "Cafard (faux !)"
 			p.tags.append("cafard")
+		"paper_ball":
+			MeshKit.add(vis, MeshKit.sphere(0.035, 10, 0.9), Mats.textured("paper", 1.0, 0.9, 0.0, false))
+			var cs := CollisionShape3D.new()
+			var sph := SphereShape3D.new()
+			sph.radius = 0.035
+			cs.shape = sph
+			p.add_child(cs)
+			p.mass = 0.02
+			p.mat_kind = "paper"
+			p.display = "Boulette de papier"
+			p.tags.append("paper_ball")
+			p.set_meta("base_ldamp", 0.0)   # a ballistic throw has to land where it was aimed
+			p.set_meta("base_adamp", 0.5)
+			pm.bounce = 0.5
 		"shard":
 			_box_prop(p, vis, Vector3(0.03, 0.01, 0.04), Mats.color(Color(0.9, 0.9, 0.9), 0.3), 0.02, "ceramic", 0.0)
 		_:

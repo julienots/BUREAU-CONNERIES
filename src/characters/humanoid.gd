@@ -29,6 +29,7 @@ var posture := 0.0              # -1 slouched/nervous .. +1 very straight (direc
 var fall := 0.0                 # 0 upright .. 1 lying
 var fall_dir := 1.0             # -1 forward (face down), +1 backward
 var getting_up := 0.0
+var spin := 0.0                 # cartoon somersault while falling (radians)
 var stumble := 0.0
 var talking := 0.0
 var _t := 0.0
@@ -316,8 +317,8 @@ func _process(delta: float) -> void:
 	(j.pelvis as Node3D).position.y = lerpf((j.pelvis as Node3D).position.y, py, k)
 	(j.pelvis as Node3D).position.z = lerpf((j.pelvis as Node3D).position.z, float(pose.get("_pelvis_z", 0.0)), k)
 	# falling: whole body pivots around the feet
-	rotation.x = fall * PI * 0.5 * fall_dir
-	position.y = fall * 0.12
+	rotation.x = fall * PI * 0.5 * fall_dir + spin
+	position.y = fall * 0.12 + absf(sin(spin * 0.5)) * 0.6
 	_face(delta)
 
 

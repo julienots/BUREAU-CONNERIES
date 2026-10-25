@@ -235,7 +235,7 @@ func _write_status() -> void:
 # ------------------------------------------------------------------ game start
 func _humans() -> Dictionary:
 	var humans := {}
-	var desk := 8
+	var desk := 15   # desks 0-14 belong to the NPC coworkers
 	for pid in players:
 		var p: Dictionary = players[pid]
 		var cid := "boss" if p.role == "director" else "p%d" % pid
@@ -254,7 +254,7 @@ func _start_game() -> void:
 	var humans := _humans()
 	room["seed"] = seed
 	room["humans"] = humans
-	room["npc"] = 5
+	room["npc"] = 8
 	print("[server] starting game seed=%d humans=%s" % [seed, humans.keys()])
 	_build_session(true)
 	for pid in players:
@@ -716,6 +716,28 @@ func s2c_prop_spawn(id: String, kind: String, t: Transform3D, placed_by: String)
 	session.world.props_root.add_child(p)
 	p.global_transform = t
 	session.world.register(p, id)
+
+
+func broadcast_char_spawn(id: String, nick: String, look: Dictionary, voice: String, pitch: float, role: String, pos: Vector3) -> void:
+	if server:
+		_rpc_all("s2c_char_spawn", [id, nick, look, voice, pitch, role, pos])
+
+
+@rpc("authority", "reliable")
+func s2c_char_spawn(id: String, nick: String, look: Dictionary, voice: String, pitch: float, role: String, pos: Vector3) -> void:
+	if session:
+		session.spawn_remote_char(id, nick, look, voice, pitch, role, pos)
+
+
+func broadcast_char_despawn(id: String) -> void:
+	if server:
+		_rpc_all("s2c_char_despawn", [id])
+
+
+@rpc("authority", "reliable")
+func s2c_char_despawn(id: String) -> void:
+	if session:
+		session.remove_char(id)
 
 
 func on_prop_despawned(id: String) -> void:

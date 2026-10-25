@@ -349,6 +349,22 @@ func _physics_process(delta: float) -> void:
 			velocity = Vector3.ZERO
 			_anim(delta, 0.0)
 			return
+	if kd == KD.FALLING and _fling != Vector3.ZERO and not is_remote:
+		# cartoon flight: slide/fly along the launch velocity until landing
+		velocity.x = _fling.x
+		velocity.z = _fling.z
+		if _fling.y > 0.0:
+			velocity.y = _fling.y
+			_fling.y = 0.0
+		velocity.y -= 9.8 * delta
+		move_and_slide()
+		var damp := 0.25 if is_on_floor() else 0.8
+		_fling.x *= pow(damp, delta)
+		_fling.z *= pow(damp, delta)
+		if Vector2(_fling.x, _fling.z).length() < 0.1 and is_on_floor():
+			_fling = Vector3.ZERO
+		_anim(delta, 0.0)
+		return
 	if kd == KD.FALLING or kd == KD.FALLEN or kd == KD.GETUP:
 		velocity = Vector3.ZERO
 		_anim(delta, 0.0)
@@ -432,6 +448,11 @@ func _physics_process(delta: float) -> void:
 
 
 var _high_t := 0.0
+var _inside_check := 0.0
+var _fling := Vector3.ZERO        # cartoon launch velocity while falling
+var _flip := 0.0                  # extra somersaults during the fall
+var _stars: Node3D = null
+var _inside_t := 0.0
 
 
 ## Safety net: never stay perched on furniture/props (e.g. after a physics shove).
@@ -446,6 +467,20 @@ func _unstick(delta: float) -> void:
 			velocity = Vector3.ZERO
 	else:
 		_high_t = 0.0
+	# inside furniture (off the walkable area) for a while -> back to the nearest walkable spot
+	_inside_check -= delta
+	if _inside_check <= 0.0 and Game.session and Game.session.player == self and kd == KD.OK and seated_on == null and not is_remote:
+		_inside_check = 0.5
+		var flat := Vector3(global_position.x, 0, global_position.z)
+		var np: Vector3 = Game.session.world.nav_closest(flat)
+		if Vector2(np.x - flat.x, np.z - flat.z).length() > 0.45:
+			_inside_t += 0.5
+			if _inside_t >= 1.0:
+				_inside_t = 0.0
+				global_position = Vector3(np.x, 0.02, np.z)
+				velocity = Vector3.ZERO
+		else:
+			_inside_t = 0.0
 	if global_position.y < -2.0 and Game.session:
 		var p2: Vector3 = Game.session.world.nav_closest(Vector3(global_position.x, 0, global_position.z))
 		global_position = p2 + Vector3(0, 0.05, 0)
@@ -554,6 +589,8 @@ func take_hit(impulse: Vector3, source: Node) -> void:
 		else:
 			return
 	if mag > 22.0 or kd == KD.STUMBLE:
+		var push := Vector3(impulse.x, 0, impulse.z).normalized() * clampf(mag / 10.0, 1.5, 5.0)
+		fling(push + Vector3.UP * clampf(mag / 15.0, 1.0, 3.5), 0.0 if mag < 45.0 else 0.5)
 		knock_down("hit", by, -1.0 if impulse.dot(forward()) > 0 else 1.0)
 	elif mag > 5.0:
 		stumble("hit", by)
@@ -580,7 +617,58 @@ func slip(cause: String, by: String) -> void:
 	if by == id:
 		by = ""
 	Game.session.emit_sound(global_position, 30.0, "slip_whoosh", "", "")
+	# banana peel: legs fly forward, full somersault, land on the back
+	var hv := Vector3(velocity.x, 0, velocity.z)
+	var f := hv.normalized() if hv.length() > 0.3 else forward()
+	if cause == "banana":
+		Game.session.emit_sound(global_position + Vector3(0, 1, 0), 40.0, "slide_up", "", "")
+		fling(f * 3.2 + Vector3.UP * 4.2, 1.0)
+	else:
+		fling(f * 2.0 + Vector3.UP * 1.5, 0.0)
 	knock_down(cause, by, 1.0)
+
+
+## Cartoon launch: the next fall flies along `v` (with `flips` somersaults).
+func fling(v: Vector3, flips := 0.0) -> void:
+	if is_remote:
+		return
+	_fling = v
+	_flip = flips
+
+
+func _place_stars() -> void:
+	if _stars == null:
+		return
+	var hj: Node3D = humanoid.j.get("head")
+	_stars.global_position = (hj.global_position if hj else global_position + Vector3(0, 0.3, 0)) + Vector3(0, 0.3, 0)
+
+
+## Little stars circling the head of someone knocked out.
+func _show_stars(on: bool) -> void:
+	if not on:
+		if _stars:
+			_stars.queue_free()
+			_stars = null
+		return
+	if _stars or Settings.get_v("reduce_effects"):
+		return
+	_stars = Node3D.new()
+	add_child(_stars)
+	_place_stars()
+	var m := StandardMaterial3D.new()
+	m.albedo_color = Color(1, 0.88, 0.2)
+	m.emission_enabled = true
+	m.emission = Color(1, 0.8, 0.1)
+	for k in 3:
+		var st := MeshInstance3D.new()
+		var pm := PrismMesh.new()
+		pm.size = Vector3(0.09, 0.09, 0.03)
+		st.mesh = pm
+		st.material_override = m
+		_stars.add_child(st)
+		st.position = Vector3(cos(k * TAU / 3.0) * 0.25, 0, sin(k * TAU / 3.0) * 0.25)
+	var tw := _stars.create_tween().set_loops()
+	tw.tween_property(_stars, "rotation:y", TAU, 1.2).from(0.0)
 
 
 func knock_down(cause: String, by: String, dir := 1.0) -> void:
@@ -611,8 +699,13 @@ func _update_kd(delta: float) -> void:
 		KD.FALLING:
 			# gravity-like topple: slow start, fast end
 			_kd_t += delta
-			humanoid.fall = clampf(pow(_kd_t / 0.55, 2.2), 0.0, 1.0)
-			if humanoid.fall >= 1.0:
+			var air := 0.55 if _fling == Vector3.ZERO else 0.85
+			humanoid.fall = clampf(pow(_kd_t / air, 2.2 if _fling == Vector3.ZERO else 1.2), 0.0, 1.0)
+			humanoid.spin = _flip * TAU * humanoid.fall_dir * humanoid.fall
+			if humanoid.fall >= 1.0 and (is_on_floor() or _kd_t > 2.0):
+				_fling = Vector3.ZERO
+				humanoid.spin = 0.0
+				_show_stars(true)
 				kd = KD.FALLEN
 				_kd_t = randf_range(1.6, 2.6)
 				(get_node("Shape") as CollisionShape3D).disabled = true
@@ -621,10 +714,12 @@ func _update_kd(delta: float) -> void:
 					Game.session.on_character_fell(self, _fall_cause, _fall_by)
 				fell.emit(_fall_cause)
 		KD.FALLEN:
+			_place_stars()
 			_kd_t -= delta
 			if _kd_t <= 0.0:
 				kd = KD.GETUP
 				_kd_t = 1.0
+				_show_stars(false)
 				(get_node("Shape") as CollisionShape3D).disabled = false
 		KD.GETUP:
 			_kd_t -= delta
@@ -659,12 +754,13 @@ func stand_up() -> void:
 	if is_instance_valid(chair):
 		var f := -chair.global_basis.z
 		f.y = 0
-		var out := chair.global_position + f.normalized() * 0.45
-		out.y = global_position.y
+		# step out BEHIND the chair: in front of it is the desk (standing up there put people inside it)
+		var out := chair.global_position - f.normalized() * 0.8   # clear of the chair base
 		chair.on_stood()
 		out.y = 0.0
-		if Game.session and ai_driven:
+		if Game.session:
 			out = Game.session.world.nav_closest(out)
+			out.y = 0.0
 		global_position = out
 		velocity = Vector3.ZERO
 		# keep ignoring the chair until we are clear of it

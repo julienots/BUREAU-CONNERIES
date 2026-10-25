@@ -32,7 +32,7 @@ static func pick_for_day(day: int, rng: RandomNumberGenerator, done_before: Arra
 	var pool: Array = []
 	for id in Data.mission_order:
 		var m: Dictionary = Data.missions[id]
-		if int(m.tier) <= max_tier:
+		if int(m.tier) <= max_tier and not m.has("event"):
 			pool.append(id)
 	# prefer missions never completed, then shuffle deterministically
 	pool.sort_custom(func(a, b): return int(a in done_before) < int(b in done_before))
@@ -57,6 +57,15 @@ static func pick_for_day(day: int, rng: RandomNumberGenerator, done_before: Arra
 				src.insert(0, id)
 				break
 	out = src.slice(0, count)
+	# there is a meeting every day: always offer one risky meeting mission
+	var has_meeting := false
+	for id in out:
+		if Data.missions[id].get("meeting", false):
+			has_meeting = true
+	if not has_meeting and count >= 3:
+		var meet: Array = src.filter(func(x): return Data.missions[x].get("meeting", false))
+		if not meet.is_empty():
+			out[out.size() - 1] = meet[0]
 	return out
 
 
@@ -142,8 +151,10 @@ func on_event(type: String, d: Dictionary) -> void:
 					if ok and (not r.has("zone") or d.get("zone", "") == r.zone or d.get("light_zone", "") == r.zone):
 						_complete(id)
 			"reaction":
-				if type == "npc_reaction" and d.get("reaction", "") == r.reaction and String(d.get("by", "")) == owner:
+				if type == "npc_reaction" and String(d.get("by", "")) == owner and (d.get("reaction", "") == r.reaction or (r.reaction == "*" and d.get("reaction", "") in Session.PDG_PRANKS)):
 					if r.get("who", "") == "director" and not d.get("is_director", false):
+						continue
+					if r.get("who", "") == "pdg" and d.get("npc", "") != "pdg":
 						continue
 					_complete(id)
 			"rumor_reach":
@@ -192,6 +203,30 @@ func on_event(type: String, d: Dictionary) -> void:
 					progressed.emit(owner, id, "%d/%d s" % [int(progress[id]), int(r.seconds)])
 					if float(progress[id]) >= float(r.seconds):
 						_complete(id)
+			"meeting_antic":
+				if type == "meeting_antic" and d.get("actor", "") == owner:
+					if r.get("unseen", false) and d.get("seen", false):
+						continue
+					if r.has("antic") and d.get("antic", "") != r.antic:
+						continue
+					if r.has("laughs"):
+						progress[id] = int(progress.get(id, 0)) + int(d.get("laughs", 0))
+						progressed.emit(owner, id, "%d/%d rires" % [mini(int(progress[id]), int(r.laughs)), int(r.laughs)])
+						if int(progress[id]) >= int(r.laughs):
+							_complete(id)
+					else:
+						progress[id] = int(progress.get(id, 0)) + 1
+						if int(r.get("count", 1)) > 1:
+							progressed.emit(owner, id, "%d/%d" % [int(progress[id]), int(r.count)])
+						if int(progress[id]) >= int(r.get("count", 1)):
+							_complete(id)
+			"reaction_during":
+				if type == "npc_reaction" and d.get("reaction", "") == r.reaction and String(d.get("by", "")) == owner:
+					if r.get("who", "") == "director" and not d.get("is_director", false):
+						continue
+					if r.get("condition", "") == "meeting" and not s.day.meeting_active:
+						continue
+					_complete(id)
 			"disguised_witness":
 				if type == "witness" and d.get("actor", "") == owner and String(d.get("desc", "")).contains("moustache"):
 					_complete(id)

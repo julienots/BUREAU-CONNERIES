@@ -7,7 +7,10 @@
     "observer":    {"label": "L'observatrice",      "denounce": 0.5, "loyalty": 0.5, "honesty": 0.8, "credulity": 0.15, "observation": 1.0, "clumsiness": 0.1, "gossip": 0.4, "laziness": 0.2, "grudge": 0.3, "work": 0.7, "courage": 0.6},
     "grudge":      {"label": "Le rancunier",        "denounce": 0.6, "loyalty": 0.3, "honesty": 0.5, "credulity": 0.4, "observation": 0.5, "clumsiness": 0.3, "gossip": 0.5, "laziness": 0.3, "grudge": 1.0, "work": 0.6, "courage": 0.5},
     "opportunist": {"label": "L'opportuniste",      "denounce": 0.5, "loyalty": 0.3, "honesty": 0.2, "credulity": 0.3, "observation": 0.6, "clumsiness": 0.3, "gossip": 0.6, "laziness": 0.8, "grudge": 0.4, "work": 0.3, "courage": 0.6},
-    "serious":     {"label": "L'employée sérieuse", "denounce": 0.4, "loyalty": 0.5, "honesty": 0.95, "credulity": 0.3, "observation": 0.6, "clumsiness": 0.15, "gossip": 0.1, "laziness": 0.0, "grudge": 0.2, "work": 1.0, "courage": 0.5}
+    "serious":     {"label": "L'employée sérieuse", "denounce": 0.4, "loyalty": 0.5, "honesty": 0.95, "credulity": 0.3, "observation": 0.6, "clumsiness": 0.15, "gossip": 0.1, "laziness": 0.0, "grudge": 0.2, "work": 1.0, "courage": 0.5},
+    "intern": {"label": "Le stagiaire", "denounce": 0.35, "loyalty": 0.7, "honesty": 0.8, "credulity": 0.9, "observation": 0.35, "clumsiness": 0.95, "gossip": 0.5, "laziness": 0.3, "grudge": 0.1, "work": 0.7, "courage": 0.3},
+    "gossip": {"label": "La commère", "denounce": 0.55, "loyalty": 0.4, "honesty": 0.5, "credulity": 0.7, "observation": 0.75, "clumsiness": 0.3, "gossip": 1.0, "laziness": 0.4, "grudge": 0.4, "work": 0.4, "courage": 0.5},
+    "lazy": {"label": "Le flemmard", "denounce": 0.2, "loyalty": 0.6, "honesty": 0.5, "credulity": 0.5, "observation": 0.2, "clumsiness": 0.4, "gossip": 0.4, "laziness": 1.0, "grudge": 0.2, "work": 0.15, "courage": 0.4}
   },
   "coworkers": [
     {"id": "marcel",  "name": "Marcel",  "full_name": "Marcel Dubois",  "archetype": "snitch",      "voice": "marcel",  "pitch": 0.95, "desk": 0,
@@ -25,7 +28,19 @@
     {"id": "bernard", "name": "Bernard", "full_name": "Bernard Leroy",  "archetype": "coward",      "voice": "bernard", "pitch": 0.95, "desk": 6,
      "look": {"skin": "#efc1a0", "hair": "short",    "hair_color": "#6b4a2b", "shirt": "#a9c4e0", "pants": "#4a4f57", "tie": "#2c3e66", "glasses": false, "beard": "",         "build": 1.2,  "height": 0.95, "skirt": false}},
     {"id": "chloe",   "name": "Chloé",   "full_name": "Chloé Garnier",  "archetype": "serious",     "voice": "chloe",   "pitch": 1.05, "desk": 7,
-     "look": {"skin": "#f5d2b8", "hair": "ponytail", "hair_color": "#e3c36b", "shirt": "#f2f2f2", "pants": "#2a2a35", "tie": "",        "glasses": false, "beard": "",         "build": 0.9,  "height": 1.0,  "skirt": true}}
+     "look": {"skin": "#f5d2b8", "hair": "ponytail", "hair_color": "#e3c36b", "shirt": "#f2f2f2", "pants": "#2a2a35", "tie": "",        "glasses": false, "beard": "",         "build": 0.9,  "height": 1.0,  "skirt": true}},
+    {"id": "dylan", "name": "Dylan", "full_name": "Dylan Moreau", "archetype": "intern", "voice": "kevin", "pitch": 1.25, "desk": 9,
+     "look": {"skin": "#f3cfb0", "hair": "messy", "hair_color": "#2b1f17", "shirt": "#ffd23f", "pants": "#3a5f8f", "tie": "", "glasses": false, "beard": "", "build": 0.85, "height": 1.05, "skirt": false}},
+    {"id": "paulette", "name": "Paulette", "full_name": "Paulette Vasseur", "archetype": "gossip", "voice": "lucie", "pitch": 0.85, "desk": 10,
+     "look": {"skin": "#f0c9a8", "hair": "curly", "hair_color": "#c9c9d6", "shirt": "#d15c8a", "pants": "#3d3046", "tie": "", "glasses": true, "beard": "", "build": 1.1, "height": 0.92, "skirt": true}},
+    {"id": "jeanmi", "name": "Jean-Mi", "full_name": "Jean-Michel Robert", "archetype": "lazy", "voice": "gerard", "pitch": 1.12, "desk": 11,
+     "look": {"skin": "#d9a07a", "hair": "short", "hair_color": "#2e2e2e", "shirt": "#6aa84f", "pants": "#2b2b33", "tie": "#e5c22a", "glasses": false, "beard": "beard", "build": 1.3, "height": 1.0, "skirt": false}},
+    {"id": "samia", "name": "Samia", "full_name": "Samia Haddad", "archetype": "observer", "voice": "nadia", "pitch": 0.92, "desk": 12,
+     "look": {"skin": "#b97d5a", "hair": "ponytail", "hair_color": "#1a1210", "shirt": "#2d8c8c", "pants": "#24252b", "tie": "", "glasses": true, "beard": "", "build": 0.92, "height": 1.02, "skirt": false}},
+    {"id": "herve", "name": "Hervé", "full_name": "Hervé Lambert", "archetype": "snitch", "voice": "bernard", "pitch": 0.8, "desk": 13,
+     "look": {"skin": "#ecc0a0", "hair": "slick", "hair_color": "#8a6a3a", "shirt": "#ffffff", "pants": "#3b3f4c", "tie": "#8b1e3f", "glasses": false, "beard": "mustache", "build": 1.0, "height": 1.06, "skirt": false}},
+    {"id": "ines", "name": "Inès", "full_name": "Inès Garnier", "archetype": "opportunist", "voice": "chloe", "pitch": 0.95, "desk": 14,
+     "look": {"skin": "#e2b08d", "hair": "long", "hair_color": "#7a2e1e", "shirt": "#1f1f2b", "pants": "#5b5b70", "tie": "", "glasses": false, "beard": "", "build": 0.9, "height": 1.03, "skirt": true}}
   ],
   "director": {"id": "boss", "name": "M. Lebrun", "full_name": "Gaston Lebrun", "voice": "boss", "pitch": 0.9,
      "look": {"skin": "#e3ad8c", "hair": "slick", "hair_color": "#3a3a3a", "shirt": "#3a3f4a", "pants": "#3a3f4a", "tie": "#b81f2c", "glasses": false, "beard": "mustache", "build": 1.25, "height": 1.04, "skirt": false, "jacket": true}},
@@ -34,7 +49,8 @@
   "relations": [
     ["marcel", "gerard", 0.4], ["marcel", "kevin", -0.3], ["lucie", "kevin", 0.5], ["lucie", "nadia", 0.4],
     ["gerard", "nadia", -0.5], ["sophie", "chloe", 0.5], ["kevin", "bernard", 0.3], ["nadia", "chloe", -0.3],
-    ["bernard", "marcel", -0.2], ["lucie", "player", 0.5], ["marcel", "player", -0.2], ["gerard", "player", 0.0]
+    ["bernard", "marcel", -0.2], ["lucie", "player", 0.5], ["marcel", "player", -0.2], ["gerard", "player", 0.0],
+    ["dylan", "kevin", 0.6], ["paulette", "marcel", 0.4], ["paulette", "herve", 0.5], ["jeanmi", "chloe", -0.4], ["samia", "sophie", 0.4], ["herve", "player", -0.25], ["ines", "nadia", 0.3], ["dylan", "player", 0.3], ["jeanmi", "player", 0.2]
   ],
   "director_profiles": {
     "paranoid":     {"label": "Paranoïaque",  "desc": "Vérifie tout, souvent.",                 "suspicion_gain": 1.4, "decay": 0.6, "confront_level": 3, "hearing": 1.25, "patrol_rate": 1.3, "distraction_time": 0.6, "evidence_needed": 1, "inspect_bias": 0.7, "trap_bias": 0.1, "memory": 16},

@@ -68,6 +68,7 @@ var day_failed := false
 var _ended := false
 var net: Node = null                # NetSync when multiplayer
 var quiet_until := 0.0              # ignore settling noises right after spawn
+var meeting_board := false          # the director is writing on the whiteboard (back turned)
 var _cardboard_hits: Array = []
 var _last_crash := -100.0
 
@@ -218,6 +219,11 @@ func start_day_solo() -> void:
 		if Data.items.get(it, {}).get("kind", "") == "passive":
 			player.passive.append(it)
 	player.apply_cosmetics(p.equipped_cosmetics)
+	# some days the CEO drops by (outside meetings and lunch)
+	if rng.randf() < 0.55:
+		var windows := [[11 * 60 + 15, 12 * 60 + 15], [13 * 60 + 40, 15 * 60 + 15], [16 * 60 + 10, 17 * 60 + 10]]
+		var w: Array = windows[rng.randi() % windows.size()]
+		pdg_at_min = rng.randf_range(float(w[0]), float(w[1]))
 	running = true
 	notify(player, "Jour %d — Directeur : %s. %s" % [day_number, Data.director_profiles[profile].label, Data.director_profiles[profile].desc], "event")
 
@@ -274,11 +280,15 @@ func _process(delta: float) -> void:
 			"player_level": suspicion_level(human_ids[0]) if not human_ids.is_empty() else 0, "boss_profile": profile})
 		if ev_id != "":
 			events.start(ev_id, now(), _event_info(ev_id))
+		if pdg_at_min > 0.0 and day.minutes >= pdg_at_min and not day.meeting_active and not day.lunch_active and not pdg_active():
+			pdg_at_min = -1.0
+			events.start("pdg_visit", now(), {})
 		for ms in missions.values():
 			ms.poll(delta)
 		_update_actions(delta)
 		_update_smell(delta)
 		_update_cafards(delta)
+		_update_rides()
 		_update_productivity(delta)
 		if diversion.size() > 0 and now() > float(diversion.until):
 			end_diversion(null)
@@ -316,13 +326,13 @@ func employees() -> Array:
 	var out: Array = []
 	for id in characters:
 		var ch: Character = characters[id]
-		if not ch.is_director():
+		if ch.role == "employee":
 			out.append(ch)
 	return out
 
 
 func is_employee(id: String) -> bool:
-	return characters.has(id) and not (characters[id] as Character).is_director()
+	return characters.has(id) and (characters[id] as Character).role == "employee"
 
 
 func char_name(id: String) -> String:
@@ -880,6 +890,14 @@ func _self_action(actor: Character, action_id: String, params: Dictionary) -> Di
 				return {"ok": false, "msg": "Personne en face de toi (vise un collègue à moins de 5 m)."}
 			use_charge(actor, "pistolet_eau")
 			_use_water(actor, tgt)
+		"chair_rocket":
+			var ch := actor.seated_on
+			if ch == null or not "chair" in ch.tags:
+				return {"ok": false, "msg": "Assieds-toi sur une chaise à roulettes."}
+			launch_chair(ch, actor.id, actor.forward() * -1.0, 7.0)
+			game_event("action", {"action": "chair_rocket", "actor": actor.id, "target": ch.ent_id(), "zone": world.zone_at(ch.global_position)})
+		"meet_grimace", "meet_snore", "meet_mouthfart", "meet_paperball", "meet_spin", "meet_imitate":
+			return _meeting_antic(actor, action_id)
 		"call_phone_self":
 			pass
 		_:
@@ -1501,6 +1519,10 @@ func on_character_fell(c: Character, cause: String, by: String) -> void:
 		npc_say(c, barks.pick("boss_slip"), "panic")
 		if cause == "banana":
 			npc_reaction(c, "slipped", {"by": by})
+	elif c == pdg:
+		npc_say(c, barks.pick("boss_slip"), "panic")
+		if by != "":
+			npc_reaction(c, "slipped" if cause == "banana" else "tripped", {"by": by})
 	elif not c.is_player:
 		npc_say(c, barks.pick("react_fall_self"), "panic")
 	# witnesses laugh
@@ -1541,6 +1563,8 @@ func on_throw_landed(p: Prop, by: String) -> void:
 
 
 func npc_reaction(c: Character, reaction: String, d: Dictionary) -> void:
+	if c == pdg and pdg != null and reaction in PDG_PRANKS and is_authority():
+		_pdg_pranked(String(d.get("by", "")), reaction)
 	var data := d.duplicate()
 	data["reaction"] = reaction
 	data["npc"] = c.id
@@ -2222,6 +2246,8 @@ func _on_event_started(id: String, info: Dictionary) -> void:
 	match id:
 		"early_meeting":
 			day.start_meeting_now(30.0)
+		"pdg_visit":
+			start_pdg_visit()
 		"printer_jam":
 			var pr := find_device("printer")
 			if pr:
@@ -2270,6 +2296,8 @@ func _on_event_started(id: String, info: Dictionary) -> void:
 func _on_event_ended(id: String) -> void:
 	if id == "it_intervention":
 		_set_it(false)
+	if id == "pdg_visit" and pdg_brain:
+		pdg_brain.leave()
 
 
 func _set_it(down: bool) -> void:
@@ -2281,11 +2309,389 @@ func _set_it(down: bool) -> void:
 
 
 func _on_meeting_changed(active: bool) -> void:
+	meeting_board = false
 	if active:
-		notify_all("Réunion d'équipe en salle Synergie !", "event")
+		notify_all("Réunion d'équipe en salle Synergie ! Tout le monde y va… et c'est là que les bêtises rapportent gros.", "event")
 		SoundFx.ui("notify")
 		for id in brains:
 			brains[id].on_meeting_started()
+
+
+func on_board_phase(on: bool) -> void:
+	meeting_board = on
+	for h in human_list():
+		var hc := h as Character
+		if hc and not hc.is_director() and world.zone_at(hc.global_position) == "meeting":
+			notify(hc, "Le chef écrit au tableau… c'est le moment !" if on else "Il se retourne ! On se tient tranquille.", "good" if on else "warn")
+
+
+# ------------------------------------------------------------------ chair rides (funny physics)
+var _rides: Array = []
+
+
+## Sends a chair rolling with its occupant still on it.
+func launch_chair(chair: Prop, by: String, dir: Vector3, power: float) -> void:
+	var rider: Character = characters.get(chair.occupant)
+	if rider == null or not is_authority():
+		return
+	dir.y = 0
+	if dir.length() < 0.01:
+		dir = -chair.global_basis.z
+	chair.freeze = false
+	chair.sleeping = false
+	chair.set_meta("ride_t", now())
+	chair.set_meta("ride_by", by)
+	chair.apply_central_impulse(dir.normalized() * chair.mass * power)
+	chair.apply_torque_impulse(Vector3.UP * chair.mass * rng.randf_range(-1.2, 1.2))
+	emit_sound(chair.global_position + Vector3(0, 0.5, 0), 45.0, "chair_spin", by, chair.ent_id())
+	if not rider.is_player:
+		npc_say(rider, barks.pick("chair_ride"), "panic")
+	rider.do_emote("panic", 2.0)
+	if by != rider.id:
+		npc_reaction(rider, "chair_ride", {"by": by})
+		var b: CoworkerBrain = brains.get(rider.id)
+		if b:
+			b.mem.add_grievance(by, 0.2)
+		if rider.id not in human_ids and characters.has(by):
+			prank_reward(by, 10, "balade en chaise pour %s" % rider.display_name())
+	if not chair in _rides:
+		_rides.append(chair)
+
+
+func _update_rides() -> void:
+	for chair in _rides.duplicate():
+		var c := chair as Prop
+		if not is_instance_valid(c):
+			_rides.erase(chair)
+			continue
+		var t := now() - float(c.get_meta("ride_t", 0.0))
+		if c.occupant == "" or (t > 0.7 and c.linear_velocity.length() < 0.2) or t > 8.0:
+			if c.occupant != "":
+				c.freeze = true   # parked again under its sitter
+			c.remove_meta("ride_t")
+			_rides.erase(chair)
+		elif c.global_basis.y.dot(Vector3.UP) < 0.55:
+			chair_crash(c, c.linear_velocity)
+
+
+## A riding chair slams into something (or tips over): the rider is ejected, cartoon style.
+func chair_crash(chair: Prop, vel: Vector3) -> void:
+	if not chair.has_meta("ride_t"):
+		return
+	var rider: Character = characters.get(chair.occupant)
+	var by := String(chair.get_meta("ride_by", ""))
+	chair.remove_meta("ride_t")
+	_rides.erase(chair)
+	if rider == null:
+		return
+	rider.stand_up()
+	var f := Vector3(vel.x, 0, vel.z)
+	if f.length() < 0.1:
+		f = rider.forward()
+	emit_sound(chair.global_position, 70.0, "chair_fall", by, chair.ent_id())
+	emit_sound(rider.eye_position(), 40.0, "slide_up", "", "")
+	rider.fling(f.normalized() * clampf(f.length() * 1.1, 2.0, 6.0) + Vector3.UP * 3.8, 1.0)
+	rider.knock_down("chair_crash", by if by != rider.id else "", -1.0)
+	chair.apply_torque_impulse(f.normalized().cross(Vector3.UP) * -chair.mass * 1.5)
+	if by != "" and by != rider.id and characters.has(by) and rider.id not in human_ids:
+		prank_reward(by, 20, "rodéo de chaise : %s éjecté(e) !" % rider.display_name())
+
+
+# ------------------------------------------------------------------ CEO visit
+const PDG_LOOK := {"skin": "#e6b796", "hair": "slick", "hair_color": "#d9d9de", "shirt": "#1c2440", "pants": "#1c2440",
+	"tie": "#e2b52b", "glasses": true, "beard": "", "build": 1.3, "height": 1.08, "skirt": false, "jacket": true}
+const PDG_PRANKS := ["klaxon", "stink", "water_hit", "paperball", "cafard", "slipped", "sat_on_cushion", "itched", "low_seat_drop", "tripped"]
+const PDG_MISSIONS := ["pdg_farce", "pdg_glissade", "pdg_fuite"]
+
+var pdg: Character = null
+var pdg_brain: PdgBrain = null
+var pdg_at_min := -1.0              # scheduled visit (game minutes), -1 = none today
+var _pdg_pranks := 0
+var _pdg_last_by := ""
+
+
+func pdg_active() -> bool:
+	return pdg != null and is_instance_valid(pdg)
+
+
+func start_pdg_visit() -> void:
+	if pdg_active() or not is_authority():
+		return
+	var spawn := world.nav_closest(Vector3(20.5, 0, -1.5))
+	_spawn_pdg(spawn)
+	pdg_brain = PdgBrain.new()
+	pdg_brain.name = "PdgBrain"
+	add_child(pdg_brain)
+	pdg_brain.setup(pdg, self, seed_value + 99)
+	_pdg_pranks = 0
+	emit_sound(spawn + Vector3(0, 1.2, 0), 55.0, "elevator_ding", "", "")
+	npc_say(pdg, barks.pick("pdg_arrive"), "happy")
+	if net:
+		net.broadcast_char_spawn("pdg", pdg.nick, PDG_LOOK, "boss", 0.72, "visitor", spawn)
+	# everybody suddenly looks very busy
+	for id in brains:
+		var b: CoworkerBrain = brains[id]
+		if b.state in ["idle", "wander", "chat", "coffee", "printer", "party", "go_zone"] and not characters[id].is_down():
+			b._switch("work")
+	for hid in human_ids:
+		var ms: MissionSystem = missions.get(hid)
+		if ms == null:
+			continue
+		for mid in PDG_MISSIONS:
+			if not mid in ms.active and Data.missions.has(mid):
+				ms.active.append(mid)
+		notify(characters[hid], "Missions bonus pendant la visite : farces sur le PDG (gros gains… gros risques) !", "good")
+	game_event("pdg_arrived", {})
+	hud_changed.emit()
+
+
+func _spawn_pdg(pos: Vector3) -> void:
+	pdg = _spawn_char("pdg", "Le PDG", "visitor", PDG_LOOK, "boss", 0.72, {}, is_authority())
+	pdg.global_position = pos
+	pdg.walk_speed = 1.15
+
+
+## Clients: the server announces a character that was not there at the start.
+func spawn_remote_char(id: String, nick: String, look: Dictionary, voice: String, pitch: float, role: String, pos: Vector3) -> void:
+	if characters.has(id):
+		return
+	var ch := _spawn_char(id, nick, role, look, voice, pitch, {}, false)
+	ch.global_position = pos
+	if id == "pdg":
+		pdg = ch
+
+
+func remove_char(id: String) -> void:
+	var ch: Character = characters.get(id)
+	if ch == null:
+		return
+	if ch.seated_on:
+		ch.stand_up()
+	characters.erase(id)
+	ch.queue_free()
+	if id == "pdg":
+		pdg = null
+
+
+func end_pdg_visit() -> void:
+	if not pdg_active():
+		return
+	emit_sound(pdg.global_position + Vector3(0, 1.2, 0), 55.0, "elevator_ding", "", "")
+	if pdg_brain:
+		pdg_brain.queue_free()
+		pdg_brain = null
+	remove_char("pdg")
+	if net:
+		net.broadcast_char_despawn("pdg")
+	events.finish("pdg_visit")
+	for hid in human_ids:
+		var ms: MissionSystem = missions.get(hid)
+		if ms:
+			for mid in PDG_MISSIONS:
+				if mid in ms.active and not ms.is_done(mid):
+					ms.active.erase(mid)
+	notify_all("Le PDG est reparti.", "info")
+	game_event("pdg_left", {})
+	hud_changed.emit()
+
+
+## The CEO stops somewhere on his tour: coworkers greet him, the player's work is noticed.
+func pdg_stop(pos: Vector3) -> void:
+	for id in brains:
+		var o: Character = characters[id]
+		if o.global_position.distance_to(pos) < 6.0 and rng.randf() < 0.35:
+			o.look_at_point(pdg.eye_position())
+			npc_say(o, barks.pick("pdg_greet"), "happy")
+	for hid in human_ids:
+		var h: Character = characters.get(hid)
+		if h and not h.is_director() and h.global_position.distance_to(pos) < 7.0:
+			if h.seated_on and h.humanoid.typing or now() - h.last_work_time < 20.0:
+				change_trust(hid, 4.0, "le PDG t'a vu travailler")
+
+
+## Any farce landing on the CEO.
+func _pdg_pranked(by: String, reaction: String) -> void:
+	if not characters.has(by) or not by in human_ids:
+		return
+	_pdg_pranks += 1
+	_pdg_last_by = by
+	npc_say(pdg, barks.pick("pdg_pranked"), "angry")
+	pdg.do_emote("angry", 2.5)
+	if director and boss_brain and not boss_brain.observer:
+		boss_brain._last_bark = -100.0
+		boss_brain._bark("boss_pdg_panic", "panic")
+	prank_reward(by, 50, "farce sur le PDG !")
+	if director_sees(characters[by]):
+		change_trust(by, -15.0, "farce sur le PDG devant le chef")
+		if boss_brain:
+			boss_brain.sus.add(by, 25.0, "pdg_prank", -1, "boss", now())
+			on_suspicion_changed(by)
+	else:
+		change_trust(by, -3.0, "le chef est humilié")
+	game_event("pdg_pranked", {"actor": by, "reaction": reaction})
+	if _pdg_pranks >= 3 and pdg_brain and not pdg_brain.leaving:
+		npc_say(pdg, barks.pick("pdg_fled"), "angry")
+		npc_reaction(pdg, "pdg_fled", {"by": by})
+		pdg_brain.leave()
+
+
+# ------------------------------------------------------------------ meeting antics
+const ANTICS := {
+	"meet_grimace": {"label": "Faire des grimaces aux collègues", "laugh": 0.65, "pay": 6, "per_laugh": true, "sev": 1},
+	"meet_snore": {"label": "Faire semblant de dormir (ronfler)", "laugh": 0.45, "pay": 15, "per_laugh": false, "sev": 1},
+	"meet_mouthfart": {"label": "Bruit de pet avec la bouche", "laugh": 0.8, "pay": 8, "per_laugh": true, "sev": 1},
+	"meet_paperball": {"label": "Lancer une boulette de papier", "laugh": 0.3, "pay": 0, "per_laugh": false, "sev": 1},
+	"meet_spin": {"label": "Faire tourner ta chaise", "laugh": 0.5, "pay": 5, "per_laugh": true, "sev": 1},
+	"meet_imitate": {"label": "Imiter le chef dans son dos", "laugh": 0.95, "pay": 25, "per_laugh": true, "sev": 2},
+}
+
+
+func in_meeting(c: Character) -> bool:
+	return day.meeting_active and world.zone_at(c.global_position) == "meeting"
+
+
+## Contextual "self" actions (offered in the action list without aiming at anything).
+func self_actions(actor: Character) -> Array:
+	var out: Array = []
+	if actor == null or not actor.can_act():
+		return out
+	if not actor.is_director() and in_meeting(actor):
+		for id in ANTICS:
+			if id == "meet_spin" and actor.seated_on == null:
+				continue
+			out.append({"id": id, "label": String(ANTICS[id].label), "self": true, "front": true, "sus": 0.0})
+	var ch := actor.seated_on
+	if ch and "chair" in ch.tags and not "boss_chair" in ch.tags and not ch.has_meta("ride_t"):
+		out.append({"id": "chair_rocket", "label": "Se propulser en chaise !", "self": true, "sus": 0.0})
+	return out
+
+
+## Director in the meeting room with his back to the table (writing on the whiteboard).
+## Computed from his pose, so it also works on clients and with a human director.
+func boss_back_turned() -> bool:
+	if director == null or world.zone_at(director.global_position) != "meeting":
+		return false
+	var f := director.forward()
+	return f.dot((Vector3(6.6, 0, -11) - director.global_position).normalized()) < -0.2
+
+
+## Is the director looking at this character right now?
+func director_sees(c: Character) -> bool:
+	if director == null or c == null or director == c:
+		return false
+	var fov := boss_brain._current_fov() if boss_brain else 110.0
+	var rng_m := boss_brain._current_range() if boss_brain else 17.0
+	return Perception.visibility(world, director, c, fov, rng_m) > 0.08
+
+
+func _meeting_antic(actor: Character, antic: String) -> Dictionary:
+	if not in_meeting(actor):
+		return {"ok": false, "msg": "Seulement pendant la réunion, en salle Synergie."}
+	var def: Dictionary = ANTICS[antic]
+	var seen := director_sees(actor)
+	var head := actor.eye_position()
+	match antic:
+		"meet_grimace":
+			actor.do_emote("laugh", 2.0)
+		"meet_snore":
+			actor.do_emote("sleep", 3.5)
+			emit_sound(head, 52.0, "snore", actor.id, "", "snore")
+		"meet_mouthfart":
+			actor.do_emote("embarrassed", 1.5)
+			emit_sound(head, 58.0, "fart_%d" % rng.randi_range(0, 2), actor.id, "", "fart")
+		"meet_spin":
+			if actor.seated_on == null:
+				return {"ok": false, "msg": "Assieds-toi d'abord."}
+			var ch := actor.seated_on
+			emit_sound(ch.global_position, 45.0, "chair_spin", actor.id, ch.ent_id())
+			var tw := ch.create_tween()
+			tw.tween_property(ch, "rotation:y", ch.rotation.y + TAU * 2.0, 1.5).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+			actor.do_emote("laugh", 1.6)
+		"meet_paperball":
+			_throw_paper_ball(actor)
+		"meet_imitate":
+			actor.do_emote("point", 2.5)
+			npc_say(actor, barks.pick("imitate_boss"), "happy")
+	# who laughs: those who can see the clown (or hear him); funnier when the boss faces away
+	var laughers := 0
+	for id in brains:
+		var o: Character = characters[id]
+		if o == actor or not in_meeting(o) or o.is_down():
+			continue
+		if antic not in ["meet_mouthfart", "meet_snore"] and Perception.visibility(world, o, actor, 160.0, 10.0) < 0.08:
+			continue
+		if rng.randf() < float(def.laugh) * (1.0 if meeting_board else 0.7):
+			laughers += 1
+			brains[id].react_to("laugh", "meeting_laugh", "laugh", 2.5, head)
+			npc_reaction(o, "meeting_laugh", {"by": actor.id})
+	var act := record_act(actor, "meeting_antic", int(def.sev), actor.global_position, "", "")
+	if seen:
+		if boss_brain and not boss_brain.observer:
+			boss_brain._last_bark = -100.0
+			boss_brain._bark("boss_meeting_caught", "angry")
+		if antic == "meet_imitate":
+			change_trust(actor.id, -7.0, "imitation du chef")
+		notify(actor, "Pas de prime : le chef regardait !", "warn")
+	else:
+		var paid := int(def.pay) * maxi(1, laughers) if def.per_laugh else int(def.pay)
+		if laughers > 0 and antic == "meet_imitate":
+			paid += 10
+		if paid > 0:
+			prank_reward(actor.id, paid, "%s%s" % [String(def.label).to_lower(), " (%d rires)" % laughers if laughers > 0 else ""])
+		if laughers >= 2 and boss_brain:
+			boss_brain.meeting_disrupted(actor.id if rng.randf() < 0.4 else "")
+	game_event("meeting_antic", {"actor": actor.id, "antic": antic, "seen": seen, "laughs": laughers, "board": meeting_board, "act_id": int(act.get("id", -1))})
+	return {"ok": true}
+
+
+func _throw_paper_ball(actor: Character) -> void:
+	# aim at the person you are facing most directly (coworker or boss), else straight ahead
+	var f := actor.forward()
+	var aim := actor.eye_position() + f * 4.0
+	var best := 0.5
+	for id in characters:
+		var o: Character = characters[id]
+		if o == actor or not in_meeting(o):
+			continue
+		var to := o.global_position - actor.global_position
+		to.y = 0
+		var d := to.length()
+		if d < 0.3 or d > 8.0:
+			continue
+		var score := f.dot(to / d) - d * 0.01
+		if score > best:
+			best = score
+			aim = o.eye_position() - Vector3(0, 0.25, 0)
+	var start := actor.eye_position() + f * 0.35 + Vector3(0, -0.2, 0)
+	var ball := spawn_prop("paper_ball", start, actor.id)
+	ball.add_collision_exception_with(actor)
+	ball.set_meta("ball_by", actor.id)
+	ball.set_meta("thrown_by", actor.id)
+	ball.set_meta("thrown_t", now())
+	var to_aim := aim - start
+	var t := clampf(to_aim.length() / 7.0, 0.2, 1.0)
+	ball.linear_velocity = to_aim / t + Vector3(0, 4.9 * t, 0)
+	emit_sound(start, 30.0, "flick", actor.id, ball.ent_id())
+	get_tree().create_timer(30.0).timeout.connect(func(): despawn_prop(ball))
+
+
+## A paper ball hits someone.
+func paper_ball_hit(victim: Character, by: String) -> void:
+	if victim.id == by or not characters.has(by):
+		return
+	emit_sound(victim.eye_position(), 30.0, "hit_paper", "", "")
+	var b: CoworkerBrain = brains.get(victim.id)
+	if b:
+		b.react_to("surprised", "paperball_hit", "angry", 1.8, (characters[by] as Character).eye_position())
+		b.mem.add_grievance(by, 0.1)
+	elif victim.is_director():
+		victim.do_emote("angry", 2.0)
+		if boss_brain:
+			boss_brain.meeting_disrupted(by)
+	npc_reaction(victim, "paperball", {"by": by})
+	if victim.id not in human_ids:
+		prank_reward(by, 30 if victim.is_director() else 12, "boulette sur %s" % victim.display_name())
+
 
 
 # ------------------------------------------------------------------ missions & end of day

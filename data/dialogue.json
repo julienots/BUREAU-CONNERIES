@@ -429,6 +429,90 @@
       "Qui lance des trucs ?!",
       "On se calme avec les projectiles !"
     ],
+    "imitate_boss": [
+      "« Alors, la synergie, c'est… SYNERGIQUE ! »",
+      "« Je veux des résultats pour HIER ! »",
+      "« Ma porte est toujours ouverte… sauf maintenant. »",
+      "« On est une famille ! Une famille avec des objectifs. »"
+    ],
+    "meeting_laugh": [
+      "Pfff… (fou rire)",
+      "Arrête, je vais exploser !",
+      "Hihihi… pardon.",
+      "*tousse* … *pouffe*",
+      "Je peux pas, je peux pas…"
+    ],
+    "boss_board": [
+      "Bon. Je vous dessine le plan stratégique.",
+      "Regardez bien ce schéma. C'est important.",
+      "Alors, au tableau : synergie, agilité, café.",
+      "Je note les objectifs. Silence."
+    ],
+    "boss_meeting_disrupt": [
+      "Quelque chose vous amuse ?!",
+      "Je peux continuer ?! Merci.",
+      "Qui rigole au fond ?",
+      "On n'est pas au cirque ici !"
+    ],
+    "boss_meeting_caught": [
+      "Je vous vois ! On se tient !",
+      "C'est ça, votre professionnalisme ?",
+      "Vous, là ! Je note votre nom.",
+      "Très drôle. On en reparlera dans mon bureau."
+    ],
+    "paperball_hit": [
+      "Aïe ! Une boulette ?!",
+      "Qui m'a lancé ça ?",
+      "Hé ! On a quel âge, là ?",
+      "Encore une et je riposte."
+    ],
+    "pdg_arrive": [
+      "Bonjour bonjour ! Faites comme si je n'étais pas là.",
+      "Lebrun ! Montrez-moi cette fameuse équipe.",
+      "Je passe juste prendre la température. Et un café."
+    ],
+    "pdg_comment": [
+      "Il faut disrupter le paradigme, vous voyez ?",
+      "On va pivoter vers plus d'agilité synergique.",
+      "J'aime cette énergie ! Enfin, je crois que c'est de l'énergie.",
+      "Pensez « out of the box ». Mais restez dans les clous.",
+      "C'est quoi ce bruit ? Ah, c'est la productivité.",
+      "Très bien, très bien. Et ici on fait quoi exactement ?"
+    ],
+    "pdg_greet": [
+      "Bonjour Monsieur le Président !",
+      "Bienvenue, Monsieur !",
+      "Ah ! Euh… Je travaille, je travaille !",
+      "Quel honneur, Monsieur le PDG."
+    ],
+    "pdg_pranked": [
+      "QU'EST-CE QUE C'EST QUE ÇA ?!",
+      "Lebrun ! C'est ça, votre service ?!",
+      "On se croirait dans une cour de récré !",
+      "Je note. Je note TOUT."
+    ],
+    "pdg_fled": [
+      "J'en ai assez vu. Lebrun, dans mon bureau demain à 8 h !",
+      "Je m'en vais. Ce service est un cirque !"
+    ],
+    "boss_pdg": [
+      "Par ici, Monsieur le Président, attention à la marche.",
+      "Notre équipe est extrêmement… motivée.",
+      "Vous voulez un café ? Un croissant ? Une augmentation ? Pour moi ?",
+      "Tout le monde est à fond, comme vous voyez."
+    ],
+    "boss_pdg_panic": [
+      "Ah ah… c'est… c'est un exercice de team-building !",
+      "Je… je vais trouver le responsable, Monsieur !",
+      "Ce n'est PAS représentatif de notre service !"
+    ],
+    "chair_ride": [
+      "Wouhouuu !",
+      "Arrêtez-moi !!",
+      "Mes freins ! Où sont mes freins ?!",
+      "Je voleeee !",
+      "C'est pas drôle ! … Bon, un peu."
+    ],
     "running": [
       "On ne court pas dans les couloirs !",
       "Doucement, c'est pas un stade !",

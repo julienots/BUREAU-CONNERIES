@@ -35,7 +35,7 @@ Manette : stick gauche/droit, A agir, X secondaire, B lâcher.
 | Bureau 3D procédural (9 zones, 25 postes, portes, vitres, fenêtres, lumières, ~200 objets interactifs) | ✅ | captures d'écran rendues |
 | Physique Jolt : chaises roulantes, piles de cartons qui s'écroulent, papiers glissants, tasses qui cassent, sons selon matériau et force | ✅ | test e2e (tour stable au repos, s'effondre si on la pousse, bruit « crash ») |
 | Personnages 3D animés (procédural : marche calée sur la distance, assis, frappe, porter, accroupi, regard, 15 émotions, trébucher, chute, relevé) | ✅ | rendus + simulation (personne ne traverse le sol) |
-| 8 collègues autonomes (8 archétypes, besoins, emploi du temps, réunions, déjeuner, relations, rumeurs, dénonciations, mensonges, complices, petites infractions) | ✅ | simulation headless d'une journée |
+| 14 collègues autonomes (11 archétypes, besoins, emploi du temps, réunions, déjeuner, relations, rumeurs, dénonciations, mensonges, complices, petites infractions) | ✅ | simulation headless d'une journée |
 | Directeur IA : vision (cône + raycasts + attention progressive), audition atténuée par les murs, mémoire bornée et alibis, enquêtes, interrogatoires de témoins, inspections, 5 profils, pièges (manipulateur) | ✅ | tests unitaires + e2e (pris sur le fait → interrogatoire → sanction) |
 | Témoignages sincères / partiels / mensongers, contradictions, fausses accusations réfutées par alibi | ✅ | tests unitaires |
 | 30 missions + 3 défis (règles réelles côté autorité) | ✅ | contrôle statique des 30 ; 5 réussies en e2e |
@@ -43,6 +43,11 @@ Manette : stick gauche/droit, A agir, X secondaire, B lâcher.
 | Jauge **« Le chef »** (confiance du directeur 0-100 : monte si tu travailles, flattes, offres un café, dénonces à raison ; baisse si tu es pris, absent en réunion, suspect…) qui change la vitesse des soupçons, les interrogatoires et le salaire | ✅ | unitaires + e2e |
 | IA réactives : « ! » / « ? » au-dessus des collègues qui voient/entendent, râlent si on les bouscule, si on prend leurs affaires, si on s'assoit sur leur chaise, si on court ou lance des objets près d'eux ; téléphones qui sonnent, clavier qui crépite | ✅ | simulation + tests |
 | Économie, salaire, amendes, stock (poches pleines → stock) | ✅ | e2e |
+| Missions sur un **post-it** (panneau manuscrit + vrai post-it collé sur l'écran de ton PC, « Lire le post-it ») | ✅ | captures |
+| **Réunions** : tout le monde y va ; le chef alterne « parle à la table » / « écrit au tableau » (dos tourné = le moment de faire le con) ; 6 bêtises (grimaces, ronfler, pet buccal, boulette de papier, toupie sur la chaise, imiter le chef) ; 6 missions de réunion risquées mais bien payées (80 à 160 €), une proposée chaque jour | ✅ | `meeting_test` (15 vérifs) |
+| **14 collègues** (6 nouveaux : stagiaire, commère, flemmard…), 12 places en réunion | ✅ | tests |
+| **Visite du PDG** (certains jours) : arrive par l'ascenseur, fait le tour escorté par le chef, s'assoit dans son fauteuil ; tout le monde fait semblant de bosser ; farce sur le PDG = +50 € mais gros risque ; 3 farces et il s'enfuit ; 3 missions bonus | ✅ | `pdg_test` (14 vérifs, tour complet) |
+| Physique cartoon : salto sur peau de banane, envol quand on est percuté, étoiles autour de la tête, pousser une chaise **avec quelqu'un dessus** (éjecté s'il percute un mur), « se propulser en chaise », canard qui rebondit | ✅ | `physics_test` (12 vérifs) |
 | Travail : 3 mini-tâches (mails, tampons, saisie), productivité, « faire semblant » détectable | ✅ | |
 | 13 événements imprévus équilibrés | ✅ | tests unitaires |
 | Sauvegarde locale versionnée (+ migration), paramètres, touches | ✅ | e2e |
@@ -80,6 +85,9 @@ godot --headless --path . res://tests/run_tests.tscn             # 296 tests uni
 godot --headless --path . res://tests/player_flow.tscn           # 26 vérifications de bout en bout
 godot --headless --path . res://tests/farce_test.tscn            # les 6 nouvelles farces + primes
 godot --headless --path . res://tests/touch_test.tscn            # vrais évènements tactiles multi-doigts
+godot --headless --path . res://tests/meeting_test.tscn          # réunions, bêtises, missions de réunion
+godot --headless --path . res://tests/pdg_test.tscn              # visite du PDG
+godot --headless --path . res://tests/physics_test.tscn          # physique cartoon
 godot --headless --path . res://tests/sim_day.tscn -- --secs=300 --scale=4   # journée simulée
 tools/mp_test.sh 170                                             # serveur + 3 clients bots
 tools/master_test.sh                                             # serveur maître
@@ -101,4 +109,4 @@ appareils, portes) · `src/characters` · `src/player` · `src/ai` (perception, 
 cerveaux) · `src/gameplay` (session autoritaire, missions, économie, événements, journée) · `src/ui` · `src/net` ·
 `data/*.json` (personnages, objets, missions, événements, dialogues) · `tests/` · `tools/`.
 
-Polices Lilita One & Fredoka : SIL Open Font License (`assets/fonts`).
+Polices Lilita One, Fredoka & Patrick Hand : SIL Open Font License ; Permanent Marker : Apache 2.0 (`assets/fonts`, via Fontsource).

@@ -34,8 +34,8 @@ func _ready() -> void:
 func test_data() -> void:
 	check("data has no validation errors", Data.errors.is_empty(), str(Data.errors))
 	check("30 missions", Data.missions.size() >= 30, str(Data.missions.size()))
-	check("8 archetypes", Data.archetypes.size() == 8)
-	check("8 coworkers", Data.coworkers.size() == 8)
+	check("11 archetypes", Data.archetypes.size() == 11)
+	check("14 coworkers", Data.coworkers.size() == 14)
 	check("5 director profiles", Data.director_profiles.size() == 5)
 	check(">= 10 random events", Data.random_events.size() >= 10)
 	for id in Data.missions:
@@ -57,7 +57,7 @@ func test_missions_are_implemented() -> void:
 				var ok := src.contains('"id": "%s"' % a) or src.contains('"action": "%s"' % a)
 				check("mission %s action '%s' exists" % [id, a], ok)
 			"reaction":
-				check("mission %s reaction '%s' emitted" % [id, r.reaction], src.contains('"%s"' % r.reaction))
+				check("mission %s reaction '%s' emitted" % [id, r.reaction], r.reaction == "*" or src.contains('"%s"' % r.reaction))
 			"sound_kind":
 				check("mission %s sound '%s' emitted" % [id, r.kind], src.contains('"%s"' % r.kind))
 			"device_on_time":
@@ -241,3 +241,4 @@ func test_mission_pick() -> void:
 			if d == 1:
 				check("day 1 only tier 1 (%s)" % id, int(Data.missions[id].tier) == 1)
 		check("at least one tier-1 mission", t1)
+		check("one meeting mission day %d" % d, ids.any(func(x): return Data.missions[x].get("meeting", false)), str(ids))

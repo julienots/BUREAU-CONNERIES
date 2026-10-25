@@ -22,7 +22,7 @@ var errors: PackedStringArray = []
 
 const MISSION_RULES := ["move_owned_prop", "action_on_owned", "prop_in_zone", "item_in_container", "zone_crowd",
 	"reaction", "count_action", "action_during", "rumor_reach", "action_on_any", "sound_kind", "sanction_other",
-	"prank_during", "falls_window", "contradiction", "sound_window", "device_on_time", "disguised_witness", "max_level_day"]
+	"prank_during", "falls_window", "contradiction", "sound_window", "device_on_time", "disguised_witness", "max_level_day", "meeting_antic", "reaction_during"]
 const ZONES := ["open_space", "corridor", "meeting", "boss_office", "break", "toilets", "archives", "copy_room"]
 
 

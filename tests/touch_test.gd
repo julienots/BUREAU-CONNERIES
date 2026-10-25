@@ -71,6 +71,24 @@ func _ready() -> void:
 	check("action button works while holding the joystick", p.seated_on != null, "actions=%s" % [actions])
 	s.request_action(p, p.id, "stand")
 	await get_tree().create_timer(0.8).timeout
+	var np := s.world.nav_closest(p.global_position)
+	check("standing up does not put you inside the desk", Vector2(np.x - p.global_position.x, np.z - p.global_position.z).length() < 0.3, str(p.global_position))
+	# action list must stay fully on screen when it changes size (chair -> PC -> chair)
+	var pc_dev: Node3D = s.world.ent(desk.pc_id)
+	for tgt in [pc_dev, chair, pc_dev]:
+		p.global_position = s.world.nav_closest(tgt.global_position + desk.facing * -0.9)
+		var to: Vector3 = tgt.global_position - p.global_position
+		p.rotation.y = atan2(-to.x, -to.z)
+		game.rig.yaw = p.rotation.y
+		await get_tree().create_timer(0.5).timeout
+		var r: Rect2 = game.hud.prompt.get_global_rect()
+		var area: Vector2 = game.ui_root.size
+		check("action list on screen (%s, %d rows)" % [game.pc.focus.get("name", ""), game.pc.focus.get("actions", []).size()],
+			game.hud.prompt.visible and r.position.y >= 0.0 and r.end.y <= area.y + 1.0 and r.end.x <= area.x + 1.0, str(r))
+	p.global_position = s.world.nav_closest(chair.global_position + desk.facing * -1.0)
+	p.rotation.y = atan2(-desk.facing.x, -desk.facing.z)
+	game.rig.yaw = p.rotation.y
+	await get_tree().create_timer(0.6).timeout
 	# 2) tap a row of the action list (single finger, normal tap duration)
 	var rows: Array = game.hud.prompt_v.get_children().filter(func(c): return c is Button)
 	check("action list has tappable rows", rows.size() >= 2, str(rows.size()))

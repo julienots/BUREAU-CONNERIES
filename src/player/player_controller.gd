@@ -131,13 +131,25 @@ func _update_focus() -> void:
 		for a in best.get_actions(ch):
 			if not a.get("hidden", false):
 				actions.append(a)
+	if actions.is_empty():
+		best = null
 	var tid: String = best.ent_id() if best else ""
+	# meeting antics need no target: offered first while sitting/standing in the meeting
+	var extra: Array = session.self_actions(ch)
+	var title: String = best.display_name() if best else ""
+	if not extra.is_empty():
+		# meeting antics go first, the rest (chair rocket…) after the aimed object's actions
+		actions = extra.filter(func(a): return a.get("front", false)) + actions + extra.filter(func(a): return not a.get("front", false))
+		if session.in_meeting(ch) and (best == null or ch.seated_on):
+			title = "Réunion" + (" — le chef écrit au tableau !" if session.meeting_board else "")
+		elif best == null:
+			title = "Toi"
+		if best == null:
+			tid = ch.id
 	if tid != _last_target:
 		selected = 0
 		_last_target = tid
-	if actions.is_empty():
-		best = null
-	focus = {"target": tid if best else "", "name": best.display_name() if best else "", "actions": actions, "node": best}
+	focus = {"target": tid, "name": title, "actions": actions, "node": best}
 	selected = clampi(selected, 0, maxi(0, actions.size() - 1))
 	focus["index"] = selected
 	focus_changed.emit(focus)
@@ -188,8 +200,8 @@ func trigger(a: Dictionary) -> void:
 		session.notified.emit(String(a.blocked), "warn")
 		return
 	var ui := String(a.get("ui", ""))
-	var target: String = focus.get("target", "")
-	if ui in ["denounce", "rumor", "hide", "call", "shop", "boss_interrogate", "boss_sanction"]:
+	var target: String = ch.id if a.get("self", false) else String(focus.get("target", ""))
+	if ui in ["denounce", "rumor", "hide", "call", "shop", "objectives", "boss_interrogate", "boss_sanction"]:
 		ui_open.emit(ui, {"target": target, "action": a.id})
 		return
 	var r := session.request_action(ch, target, String(a.id), {})

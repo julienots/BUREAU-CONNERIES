@@ -143,6 +143,7 @@ func get_actions(actor: Node) -> Array:
 				return out
 			if mine:
 				out.append({"id": "work", "label": "Travailler", "time": 0.0, "ui": "work"})
+				out.append({"id": "read_postit", "label": "Lire le post-it (missions)", "time": 0.0, "ui": "objectives", "sus": 0.0})
 				out.append({"id": "pretend", "label": "Faire semblant de travailler", "time": 0.0})
 				out.append({"id": "shop", "label": "Boutique SuperAmazone", "time": 0.0, "ui": "shop"})
 				out.append({"id": "call_phone", "label": "Appeler un poste…", "time": 0.0, "ui": "call", "sus": 0.0})

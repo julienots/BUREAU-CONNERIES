@@ -74,7 +74,7 @@ func _current_fov() -> float:
 	if state == "distracted":
 		return 50.0
 	if state == "meeting":
-		return 120.0
+		return 60.0 if data.get("board", false) else 120.0
 	return fov
 
 
@@ -309,7 +309,7 @@ func on_hear(ev: Dictionary, perceived: float) -> void:
 		return
 	mem.hear(kind, ev.pos, ev.zone, perceived, s.now())
 	c.look_at_point(ev.pos + Vector3(0, 0.8, 0))
-	if state in ["meeting", "confront", "question", "vip", "listen"]:
+	if state in ["meeting", "confront", "question", "vip", "listen", "escort"]:
 		return
 	if state == "distracted" and rng.randf() > 0.25:
 		return
@@ -333,6 +333,13 @@ func on_witness(act: Dictionary, info: Dictionary) -> void:
 		s.director_note("Tu as vu %s : %s" % [s.char_name(info.id), s.act_description(act).replace("On vous soupçonne de : ", "")])
 		return
 	s.change_trust(info.id, -8.0, "bêtise repérée")
+	if (state == "meeting" and s.day.meeting_active or state == "escort") and float(info.conf) > 0.6:
+		# he will not leave his own meeting: noted now, dealt with afterwards
+		sus.set_confirmed(info.id, int(act.id), now)
+		sus.add(info.id, 10.0 * int(act.sev), "seen", int(act.id), "boss", now)
+		s.on_suspicion_changed(info.id)
+		s.notify_caught(s.characters.get(info.id), "Le directeur t'a vu ! Il s'occupera de toi plus tard…")
+		return
 	if float(info.conf) > 0.6:
 		sus.set_confirmed(info.id, int(act.id), now)
 		_bark("boss_caught", "angry")
@@ -396,6 +403,11 @@ func _think() -> void:
 	if s.day.meeting_active:
 		if state != "meeting":
 			_switch("meeting")
+		_run()
+		return
+	if s.pdg_active():
+		if state != "escort":
+			_switch("escort")
 		_run()
 		return
 	if s.events.active("boss_call"):
@@ -482,6 +494,8 @@ func _run() -> void:
 			c.stop()
 		"meeting":
 			_st_meeting()
+		"escort":
+			_st_escort()
 		"phone":
 			_st_spot("boss_phone", "phone", "boss_phone")
 		"vip":
@@ -699,10 +713,23 @@ func _st_meeting() -> void:
 				timer = 55.0
 				_bark("boss_meeting", "neutral")
 		2:
-			c.look_at_point(Vector3(6.5, 1.2, -11) + Vector3(sin(s.now() * 0.5) * 2.5, 0, 0))
-			if rng.randf() < 0.012:
-				_bark("boss_meeting", "neutral")
-				c.do_emote("point", 1.5)
+			# alternates between talking to the table and writing on the whiteboard (back turned:
+			# that is the window for meeting antics)
+			var now: float = s.now()
+			if not data.has("ph_until"):
+				data.ph_until = now + rng.randf_range(6.0, 10.0)
+				data.board = false
+			if now >= float(data.ph_until):
+				_set_board(not data.get("board", false))
+			if data.get("board", false):
+				c.look_at_point(Vector3(0.3, 1.5, -11.0 + sin(now * 0.8) * 0.6))
+				if rng.randf() < 0.2:
+					s.emit_sound(c.global_position + Vector3(-0.6, 1.4, 0), 24.0, "marker_squeak", "", "")
+			else:
+				c.look_at_point(Vector3(6.5, 1.2, -11) + Vector3(sin(now * 0.5) * 2.5, 0, 0))
+				if rng.randf() < 0.012:
+					_bark("boss_meeting", "neutral")
+					c.do_emote("point", 1.5)
 			if timer <= 0.0 and not data.get("roll_call", false):
 				# absentees are noted (that is the price of using the meeting as cover)
 				data.roll_call = true
@@ -714,6 +741,48 @@ func _st_meeting() -> void:
 						s.change_trust(ec.id, -6.0, "absent en réunion")
 					else:
 						s.change_trust(ec.id, 4.0, "présent en réunion")
+
+
+## CEO visit: sticks to the CEO, sucks up, and keeps an eye out for trouble around him.
+func _st_escort() -> void:
+	var p: Character = s.pdg
+	if p == null:
+		_switch("patrol")
+		return
+	var back := -p.forward()
+	var spot: Vector3 = p.global_position + back * 1.3 + back.cross(Vector3.UP) * 0.7
+	if c.global_position.distance_to(spot) > 1.2:
+		if timer <= 0.0:
+			timer = 0.6
+			c.go_to(s.world.nav_closest(spot), c.global_position.distance_to(spot) > 5.0)
+	else:
+		c.stop()
+		c.look_at_point(p.eye_position() if rng.randf() < 0.6 else c.global_position + c.forward() * 4.0 + Vector3(0, 1.4, 0))
+	if rng.randf() < 0.012:
+		_bark("boss_pdg", "happy")
+
+
+func _set_board(on: bool) -> void:
+	data.board = on
+	data.ph_until = s.now() + (rng.randf_range(5.0, 8.0) if on else rng.randf_range(8.0, 15.0))
+	c.face_dir = Vector3.LEFT if on else Vector3.RIGHT
+	if on:
+		_bark("boss_board", "neutral")
+	s.on_board_phase(on)
+
+
+## Laughter / noise in the meeting: the director turns around at once.
+func meeting_disrupted(suspect: String) -> void:
+	if observer or state != "meeting" or step < 2:
+		return
+	if data.get("board", false):
+		_set_board(false)
+	_last_bark = -100.0
+	_bark("boss_meeting_disrupt", "angry")
+	c.do_emote("angry", 2.0)
+	if suspect != "" and rng.randf() < 0.5:
+		sus.add(suspect, 4.0, "meeting_disrupt", -1, "boss", s.now())
+		s.on_suspicion_changed(suspect)
 
 
 func _st_spot(kind: String, emote: String, cat: String) -> void:

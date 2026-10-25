@@ -56,6 +56,7 @@ func park(npc: Character, pos: Vector3, look: Vector3) -> void:
 		npc.stand_up()
 	s.brains[npc.id].set_physics_process(false)
 	npc.stop()
+	npc.clear_look()
 	npc.global_position = pos
 	npc.velocity = Vector3.ZERO
 	face(npc, look)

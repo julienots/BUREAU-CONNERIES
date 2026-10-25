@@ -7,7 +7,7 @@ const SOUND_FOR := {
 	"wood": ["hit_wood_light", "hit_wood_heavy"], "metal": ["hit_metal", "hit_metal"],
 	"plastic": ["hit_plastic", "hit_plastic"], "cardboard": ["hit_cardboard", "hit_cardboard"],
 	"paper": ["hit_paper", "hit_paper"], "ceramic": ["hit_ceramic", "hit_ceramic"],
-	"fabric": ["bump", "bump"], "chair": ["hit_plastic", "chair_fall"], "rubber": ["duck_squeak", "duck_squeak"],
+	"fabric": ["bump", "bump"], "chair": ["hit_plastic", "chair_fall"], "rubber": ["duck_squeak", "boing"],
 }
 
 var kind := ""
@@ -189,10 +189,16 @@ func _on_body_entered(body: Node) -> void:
 	if speed < 0.9:
 		return
 	var now := Game.time()
+	if has_meta("ball_by") and body is Character and Game.session and Game.session.is_authority():
+		var by := String(get_meta("ball_by"))
+		remove_meta("ball_by")
+		Game.session.paper_ball_hit(body as Character, by)
 	if has_meta("thrown_t") and Game.session and Game.session.is_authority():
 		if now - float(get_meta("thrown_t")) < 3.0:
 			Game.session.on_throw_landed(self, String(get_meta("thrown_by", "")))
 		remove_meta("thrown_t")
+	if seat_height > 0.0 and occupant != "" and has_meta("ride_t") and speed > 2.3 and not body is Character and Game.session and Game.session.is_authority():
+		Game.session.chair_crash(self, _prev_vel)
 	if body is Character and speed > 2.6 and mass * speed > 12.0:
 		(body as Character).take_hit(_prev_vel * mass * 0.08, self)
 	if now - _last_sound_t < 0.12:
@@ -260,6 +266,11 @@ func get_actions(actor: Node) -> Array:
 			out.append({"id": "hold", "label": "Traîner", "time": 0.3})
 			out.append({"id": "push", "label": "Pousser", "time": 0.0})
 			return out
+		if occupant != "":
+			# someone is sitting on it: send them for a ride
+			if occupant != actor.char_id():
+				out.append({"id": "chair_ride", "label": "Pousser la chaise (avec quelqu'un dessus !)", "time": 0.0, "noise": 15.0, "sus": 0.6, "prank": true, "act": "chair_ride", "sev": 2})
+			return out
 		if occupant == "":
 			out.append({"id": "sit", "label": "S'asseoir", "time": 0.0})
 			if owner_id != "" and actor.char_id() != owner_id and not seat_low:
@@ -301,6 +312,10 @@ func perform(actor: Node, action: String, params: Dictionary) -> Dictionary:
 		"push":
 			sleeping = false
 			apply_central_impulse(dir * mass * 1.6 + Vector3.UP * mass * 0.1)
+		"chair_ride":
+			if occupant == "":
+				return {"ok": false, "msg": "Plus personne dessus."}
+			sess.launch_chair(self, actor.char_id(), dir, 6.5)
 		"shove":
 			sleeping = false
 			apply_impulse(dir * mass * 2.4, Vector3(0, 0.6, 0))

@@ -10,10 +10,15 @@ const MUTED := Color(0.7, 0.72, 0.8)
 const GOOD := Color("#4cd97b")
 const BAD := Color("#ff4d4d")
 const WARN := Color("#ffa53a")
+const POSTIT := Color("#ffe45c")
+const INK := Color(0.11, 0.14, 0.36)
+const RED_INK := Color(0.78, 0.1, 0.12)
 
 static var _theme: Theme
 static var title_font: Font
 static var body_font: Font
+static var hand_font: Font      # Patrick Hand: handwriting for post-its
+static var marker_font: Font    # Permanent Marker: post-it headings
 
 
 static func theme() -> Theme:
@@ -21,6 +26,8 @@ static func theme() -> Theme:
 		return _theme
 	title_font = load("res://assets/fonts/LilitaOne-Regular.ttf")
 	body_font = load("res://assets/fonts/Fredoka.ttf")
+	hand_font = load("res://assets/fonts/PatrickHand.woff2")
+	marker_font = load("res://assets/fonts/PermanentMarker.woff2")
 	var t := Theme.new()
 	t.default_font = body_font
 	t.default_font_size = 20
@@ -78,6 +85,29 @@ static func _box(c: Color, r: int, border: int, bc: Color) -> StyleBoxFlat:
 	s.content_margin_bottom = 10
 	s.anti_aliasing = true
 	return s
+
+
+## Sticky note: square-ish paper, darker glue strip on top, soft drop shadow.
+static func postit_box(c := POSTIT) -> StyleBoxFlat:
+	var s := _box(c, 3, 0, Color.TRANSPARENT)
+	s.border_width_top = 12
+	s.border_color = c.darkened(0.1)
+	s.shadow_color = Color(0, 0, 0, 0.35)
+	s.shadow_size = 8
+	s.shadow_offset = Vector2(3, 5)
+	s.content_margin_left = 18
+	s.content_margin_right = 18
+	s.content_margin_top = 8
+	s.content_margin_bottom = 14
+	return s
+
+
+## Handwritten text (ink on paper, no outline).
+static func hand(text: String, size := 22, color := INK, marker := false) -> Label:
+	var l := label(text, size, color)
+	l.add_theme_font_override("font", marker_font if marker else hand_font)
+	l.add_theme_constant_override("outline_size", 0)
+	return l
 
 
 static func box(c: Color, r := 14, border := 0, bc := Color.TRANSPARENT) -> StyleBoxFlat:

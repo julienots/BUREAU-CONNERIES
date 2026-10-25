@@ -160,7 +160,7 @@ func _join_code() -> void:
 
 func _credits() -> void:
 	var txt := "OFFICE MAYHEM\nun jeu SuperEssence Studio\n\nConception, programmation, modèles 3D procéduraux, IA, sons et voix générés par l'équipe SuperEssence " + \
-		"(avec l'aide de Claude, assistant IA d'Anthropic).\n\nMoteur : Godot Engine 4.5 (MIT) · Physique : Jolt\nPolices : Lilita One & Fredoka (SIL Open Font License)\n" + \
+		"(avec l'aide de Claude, assistant IA d'Anthropic).\n\nMoteur : Godot Engine 4.5 (MIT) · Physique : Jolt\nPolices : Lilita One, Fredoka, Patrick Hand (SIL OFL), Permanent Marker (Apache 2.0)\n" + \
 		"Voix : synthèse espeak-ng retravaillée (charabia garanti 100 % sans sens)\n\nMerci à tous les collègues qui ont perdu leur chaise pendant les tests."
 	var cp := ChoicePanel.open(ui, "Crédits", txt, [], "Fermer")
 	cp.custom_minimum_size = Vector2(600, 0)

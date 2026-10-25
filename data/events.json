@@ -29,6 +29,7 @@
      "desc": "La pile des archives n'était pas très stable.", "requires": {}},
     {"id": "rolling_chair",    "title": "Chaise en liberté",                "weight": 0.6, "difficulty": 0,  "cooldown": 150, "duration": 0,
      "desc": "Une chaise roule toute seule dans le couloir.", "requires": {}},
+    {"id": "pdg_visit", "title": "Visite du PDG !", "weight": 0.35, "difficulty": 1, "cooldown": 600, "duration": 160, "desc": "Le grand patron fait le tour des bureaux, escorté par le directeur. Tout le monde fait semblant de bosser… Une farce sur le PDG rapporte gros (et coûte cher).", "requires": {"not_meeting": true}},
     {"id": "croissants",       "title": "Croissants en salle de pause !",   "weight": 0.7, "difficulty": -1, "cooldown": 400, "duration": 60,
      "desc": "Tout le monde se précipite. L'open space se vide.", "requires": {"not_meeting": true}}
   ],

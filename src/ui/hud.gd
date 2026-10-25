@@ -25,6 +25,8 @@ var banner: Label
 var inv_box: HBoxContainer
 var crosshair: ColorRect
 var hint_l: Label
+var meet_banner: PanelContainer
+var meet_l: Label
 var shop_btn: Button
 var pause_btn: Button          # touch only (the keyboard uses Échap)
 var mission_chip: Button
@@ -112,10 +114,21 @@ func _build_top() -> void:
 	mission_chip.focus_mode = Control.FOCUS_NONE
 	mission_chip.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	mission_chip.clip_text = true
+	mission_chip.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	mission_chip.custom_minimum_size = Vector2(250, 44)
-	mission_chip.add_theme_font_size_override("font_size", 16)
-	mission_chip.add_theme_stylebox_override("normal", UiKit.box(Color(0.3, 0.26, 0.08, 0.9), 10, 2, UiKit.YELLOW))
-	mission_chip.add_theme_stylebox_override("hover", UiKit.box(Color(0.38, 0.33, 0.1, 0.95), 10, 2, UiKit.YELLOW))
+	mission_chip.add_theme_font_override("font", UiKit.hand_font)
+	mission_chip.add_theme_font_size_override("font_size", 21)
+	for k in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
+		mission_chip.add_theme_color_override(k, UiKit.INK)
+	var chip_st := UiKit.postit_box()
+	chip_st.border_width_top = 6
+	chip_st.content_margin_top = 4
+	chip_st.content_margin_bottom = 4
+	chip_st.content_margin_left = 12
+	mission_chip.add_theme_stylebox_override("normal", chip_st)
+	mission_chip.add_theme_stylebox_override("hover", chip_st)
+	mission_chip.add_theme_stylebox_override("pressed", chip_st)
+	mission_chip.add_theme_stylebox_override("focus", chip_st)
 	mission_chip.pressed.connect(toggle_objectives)
 	lv.add_child(mission_chip)
 	var sp := Control.new()
@@ -189,27 +202,27 @@ func toggle_objectives() -> void:
 ## Day start briefing: show the secret objectives for a few seconds so nobody misses them.
 func brief_objectives(dur := 12.0) -> void:
 	obj_panel.visible = true
-	notify("Tes missions secrètes du jour sont affichées à gauche. Touche le bandeau « Mission » en haut pour les revoir.", "event")
+	notify("Tes missions du jour sont sur le post-it à gauche. Touche le petit post-it en haut (ou %s) pour le revoir." % ("ton PC" if Settings.use_touch() else Settings.key_label("objectives")), "event")
 	get_tree().create_timer(dur).timeout.connect(func():
 		if is_instance_valid(obj_panel):
 			obj_panel.visible = false)
 
 
 func _build_objectives() -> void:
-	obj_panel = UiKit.panel(Vector2(330, 0))
-	obj_panel.position = Vector2(16, 190)
+	obj_panel = PanelContainer.new()
+	obj_panel.add_theme_stylebox_override("panel", UiKit.postit_box())
+	obj_panel.custom_minimum_size = Vector2(340, 0)
+	obj_panel.rotation_degrees = -1.5
+	obj_panel.position = Vector2(20, 190)
 	obj_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	obj_panel.visible = false
 	root.add_child(obj_panel)
 	obj_box = UiKit.vbox(6)
+	# phones: keep the list above the joystick; both scroll when the list is long
+	var sc := UiKit.scroll(obj_box, Vector2(320, 230 if Settings.use_touch() else 470))
+	obj_panel.add_child(sc)
 	if Settings.use_touch():
-		# phones: keep the list above the joystick, scroll with a finger
-		var sc := UiKit.scroll(obj_box, Vector2(320, 230))
-		sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-		obj_panel.add_child(sc)
-		obj_panel.position = Vector2(16, 176)
-	else:
-		obj_panel.add_child(obj_box)
+		obj_panel.position = Vector2(20, 178)
 
 
 func _build_prompt() -> void:
@@ -235,6 +248,10 @@ func _build_prompt() -> void:
 	root.add_child(prompt)
 	prompt_v = UiKit.vbox(2)
 	prompt.add_child(prompt_v)
+	# re-place whenever the content or the screen changes size
+	prompt.minimum_size_changed.connect(func(): _place_prompt.call_deferred())
+	prompt.visibility_changed.connect(func(): _place_prompt.call_deferred())
+	root.resized.connect(func(): _place_prompt.call_deferred())
 	var pp := UiKit.panel(Vector2(320, 0))
 	pp.set_anchors_preset(Control.PRESET_CENTER)
 	pp.grow_horizontal = Control.GROW_DIRECTION_BOTH
@@ -261,6 +278,17 @@ func _build_notifs() -> void:
 	notif_box.custom_minimum_size = Vector2(560, 0)
 	notif_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(notif_box)
+	meet_banner = PanelContainer.new()
+	meet_banner.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	meet_banner.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	meet_banner.offset_top = 12
+	meet_banner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	meet_banner.visible = false
+	root.add_child(meet_banner)
+	meet_l = UiKit.label("", 20, Color.BLACK, true)
+	meet_l.add_theme_constant_override("outline_size", 0)
+	meet_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	meet_banner.add_child(meet_l)
 	hint_l = UiKit.label("", 15, UiKit.MUTED)
 	hint_l.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	hint_l.offset_left = 18
@@ -302,11 +330,34 @@ func _process(delta: float) -> void:
 		_act_t += delta
 		progress.value = clampf(_act_t / _act_total, 0, 1) * 100.0
 	crosshair.visible = Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
+	_update_meeting_banner()
+	if Settings.use_touch() and prompt.visible and _ctx_visible() != _ctx_shown:
+		_place_prompt()
 	# objectives toggle
 	if Input.is_action_just_pressed("objectives"):
 		toggle_objectives()
 	if Input.is_action_just_pressed("shop") and not pc.blocked:
 		pc.ui_open.emit("shop", {"target": ""})
+
+
+## Meeting: where to go, and whether the director is looking (the risk indicator).
+func _update_meeting_banner() -> void:
+	var show := session.day.meeting_active and not ch.is_director()
+	meet_banner.visible = show
+	notif_box.offset_top = 70 if show else 14
+	if not show:
+		return
+	var col := UiKit.YELLOW
+	if session.world.zone_at(ch.global_position) != "meeting":
+		meet_l.text = "RÉUNION EN COURS → salle Synergie (le chef note les absents)"
+		col = UiKit.WARN
+	elif session.boss_back_turned():
+		meet_l.text = "Le chef écrit au tableau : c'est le moment de faire le con !"
+		col = UiKit.GOOD
+	else:
+		meet_l.text = "Le chef vous regarde… tiens-toi bien."
+		col = UiKit.YELLOW
+	meet_banner.add_theme_stylebox_override("panel", UiKit.box(col, 12))
 
 
 func refresh() -> void:
@@ -360,7 +411,7 @@ func _refresh_objectives() -> void:
 		elif cur == "":
 			cur = id
 	mission_chip.visible = true
-	mission_chip.text = ("Mission : %s  (+%d €)" % [ms.title(cur), ms.reward_of(cur)] if cur != "" else "Missions terminées !") + "   %d/%d  ▸" % [n_done, ms.active.size()]
+	mission_chip.text = ("%d/%d  %s  +%d €" % [n_done, ms.active.size(), ms.title(cur), ms.reward_of(cur)] if cur != "" else "Tout est fait ! %d/%d" % [n_done, ms.active.size()])
 	var sig := ""
 	for id in ms.all_ids():
 		sig += id + str(ms.is_done(id)) + str(ms.progress.get(id, "")) + str(ms._hold.get(id, 0))
@@ -369,10 +420,10 @@ func _refresh_objectives() -> void:
 	_obj_sig = sig
 	for c in obj_box.get_children():
 		c.queue_free()
-	obj_box.add_child(UiKit.label("OBJECTIFS SECRETS" + ("" if Settings.use_touch() else "  [%s]" % Settings.key_label("objectives")), 18, UiKit.YELLOW, true))
+	obj_box.add_child(UiKit.hand("À faire (en douce !)" + ("" if Settings.use_touch() else "  [%s]" % Settings.key_label("objectives")), 22, UiKit.RED_INK, true))
 	for id in ms.active:
 		_obj_row(ms, id, true)
-	obj_box.add_child(UiKit.label("Défis", 15, UiKit.MUTED))
+	obj_box.add_child(UiKit.hand("Bonus :", 20, UiKit.INK, true))
 	for id in ms.side:
 		_obj_row(ms, id, false)
 
@@ -381,20 +432,29 @@ func _obj_row(ms: MissionSystem, id: String, main: bool) -> void:
 	var done := ms.is_done(id)
 	var v := UiKit.vbox(0)
 	obj_box.add_child(v)
-	var t := UiKit.label(("✔ " if done else "• ") + ms.title(id) + ("  +%d €" % ms.reward_of(id) if main else ""), 17 if main else 15, UiKit.GOOD if done else UiKit.TEXT)
+	# handwritten line, crossed out once done
+	var t := RichTextLabel.new()
+	t.bbcode_enabled = true
+	t.fit_content = true
+	t.scroll_active = false
+	t.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	t.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	t.custom_minimum_size = Vector2(300, 0)
+	t.add_theme_font_override("normal_font", UiKit.hand_font)
+	t.add_theme_font_size_override("normal_font_size", 22 if main else 19)
+	t.add_theme_color_override("default_color", UiKit.INK)
+	var line := "- " + ms.title(id) + ("  [color=#b3181f]+%d €[/color]" % ms.reward_of(id) if main else "")
+	t.text = "[s]%s[/s]  [color=#1f7a33]Fait ![/color]" % line if done else line
 	v.add_child(t)
 	if main and not done:
-		var d := UiKit.label(ms.desc(id), 13, UiKit.MUTED)
+		var d := UiKit.hand(ms.desc(id), 17, UiKit.INK.lightened(0.25))
 		d.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		d.custom_minimum_size = Vector2(300, 0)
 		v.add_child(d)
 		var need: Array = Data.missions[id].get("items", [])
 		for it in need:
 			if not ch.has_item(it):
-				v.add_child(UiKit.label("   Requiert : %s (boutique)" % Data.item_name(it), 13, UiKit.WARN))
-		var p = ms.progress.get(id, null)
-		if typeof(p) == TYPE_INT or typeof(p) == TYPE_ARRAY:
-			pass
+				v.add_child(UiKit.hand("   il me faut : %s (boutique)" % Data.item_name(it), 17, UiKit.RED_INK))
 
 
 func _refresh_inventory() -> void:
@@ -472,7 +532,9 @@ func _on_focus(f: Dictionary) -> void:
 		return   # rebuilding every frame would swallow taps
 	_prompt_sig = sig
 	for c in prompt_v.get_children():
+		prompt_v.remove_child(c)   # now, so the panel is not sized for old + new rows
 		c.queue_free()
+	_place_prompt.call_deferred()
 	var acts: Array = f.get("actions", [])
 	if acts.is_empty() or pc.blocked:
 		prompt.visible = false
@@ -500,7 +562,7 @@ func _on_focus(f: Dictionary) -> void:
 			# phones: every action is a big tappable row
 			var b := Button.new()
 			b.text = String(a.label) + ("  (%ds)" % ceili(float(a.time)) if float(a.get("time", 0.0)) > 0.0 else "") + ("  ⚠" if float(a.get("sus", 0.0)) >= 0.6 else "")
-			b.custom_minimum_size = Vector2(330, 56)
+			b.custom_minimum_size = Vector2(330, 56 if acts.size() <= 6 else 48)
 			b.focus_mode = Control.FOCUS_NONE
 			b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 			b.add_theme_font_size_override("font_size", 21)
@@ -517,6 +579,33 @@ func _on_focus(f: Dictionary) -> void:
 		prompt_v.add_child(l)
 		if blocked and i == idx:
 			prompt_v.add_child(UiKit.label("   " + String(a.blocked), 14, UiKit.WARN))
+
+
+var _ctx_shown := false
+
+
+func _ctx_visible() -> bool:
+	for b in get_tree().get_nodes_in_group("ctx_btn"):
+		if (b as Control).is_visible_in_tree():
+			return true
+	return false
+
+
+## Keeps the action list fully on screen whatever its length (anchored bottom-right on
+## phones, bottom-centre on PC). Containers never shrink by themselves, so size it explicitly.
+func _place_prompt() -> void:
+	if not is_instance_valid(prompt) or not prompt.visible:
+		return
+	prompt.reset_size()
+	var area := root.size
+	var sz := prompt.size
+	if Settings.use_touch():
+		# leave room for the contextual Lâcher / Lancer / Se lever buttons when they show
+		_ctx_shown = _ctx_visible()
+		var right := 530.0 if _ctx_shown else 370.0
+		prompt.position = Vector2(area.x - right - sz.x, maxf(8.0, area.y - 24.0 - sz.y))
+	else:
+		prompt.position = Vector2((area.x - sz.x) * 0.5, maxf(8.0, area.y - 110.0 - sz.y))
 
 
 func notify(text: String, kind := "info") -> void:
@@ -539,9 +628,10 @@ func notify(text: String, kind := "info") -> void:
 	p.add_child(l)
 	notif_box.add_child(p)
 	# autowrapped labels report a one-line minimum height on their first frame: fix it once laid out
-	(func():
-		if is_instance_valid(l):
-			l.custom_minimum_size.y = l.get_line_count() * l.get_line_height() + 2).call_deferred()
+	l.resized.connect(func():
+		var h := l.get_line_count() * l.get_line_height() + 2
+		if absf(l.custom_minimum_size.y - h) > 1.0:
+			l.custom_minimum_size.y = h)
 	while notif_box.get_child_count() > 4:
 		notif_box.get_child(0).queue_free()
 		notif_box.remove_child(notif_box.get_child(0))

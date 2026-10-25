@@ -28,9 +28,26 @@ func _ready() -> void:
 	add_child(game)
 
 var _farce_done := false
+var _desk_done := false
 
 func _process(delta: float) -> void:
 	_t += delta
+	if "--desk" in OS.get_cmdline_user_args() and not _desk_done and _t > 2.0:
+		# close-up on the player's own desk (post-it with the missions)
+		_desk_done = true
+		var sd: Session = game.session
+		var d: Dictionary = sd.world.desk_of("player")
+		sd.player.global_position = sd.world.nav_closest(d.seat + d.facing * -0.1)
+		sd.player.rotation.y = atan2(-d.facing.x, -d.facing.z)
+		game.rig.yaw = sd.player.rotation.y
+		var pcd: Device = sd.world.ent(d.pc_id)
+		var cam := Camera3D.new()
+		add_child(cam)
+		var mon_pos: Vector3 = pcd.get_parent().global_position + Vector3(0, 0.4, 0)
+		cam.global_position = mon_pos - d.facing * 0.75 + Vector3(0, 0.15, 0)
+		cam.look_at(mon_pos, Vector3.UP)
+		cam.current = true
+		get_tree().create_timer(5.0).timeout.connect(func(): cam.queue_free())
 	if "--farce" in OS.get_cmdline_user_args() and not _farce_done and _t > 12.0:
 		# honk at the nearest coworkers so reactions / prank bonus show up on screen
 		_farce_done = true

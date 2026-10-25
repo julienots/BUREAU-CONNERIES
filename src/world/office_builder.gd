@@ -385,7 +385,7 @@ func _owner_name(id: String) -> String:
 
 
 func _meeting_room() -> void:
-	Furniture.table(root, Vector3(6.5, 0, -11), Vector3(5.6, 0.74, 1.5), Furniture.wood())
+	Furniture.table(root, Vector3(6.6, 0, -11), Vector3(6.8, 0.74, 1.5), Furniture.wood())
 	var wb := Furniture.whiteboard(root, Vector3(0.12, 0, -11), -90)
 	var wbd := _device(wb.pivot, "whiteboard", "Tableau blanc", "", Vector3(0, 1.4, -0.6))
 	wbd.screen = wb.surface
@@ -393,9 +393,9 @@ func _meeting_room() -> void:
 	var tv := Furniture.pivot(root, Vector3(11.88, 0, -11), 90)
 	MeshKit.add_box(tv, Vector3(1.6, 0.92, 0.06), Mats.color(Color(0.05, 0.05, 0.06), 0.2), Vector3(0, 1.6, 0), 0.01)
 	MeshKit.add(tv, MeshKit.quad(Vector2(1.5, 0.84)), Mats.screen("corp_logo", 0.8), Vector3(0, 1.6, -0.031), Vector3(0, 180, 0), false)
-	for i in 4:
+	for i in 6:
 		for side in [-1, 1]:
-			var x := 4.4 + i * 1.4
+			var x := 3.85 + i * 1.1
 			w.add_poi("meeting_seat", Vector3(x, 0, -11 + side * 1.25), Vector3(0, 0, -side))
 	w.add_poi("meeting_boss", Vector3(1.0, 0, -11), Vector3.RIGHT)
 	var sw := Furniture.pivot(root, Vector3(2.4, 1.2, -8.1), 180)

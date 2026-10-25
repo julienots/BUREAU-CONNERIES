@@ -81,6 +81,52 @@ func _mark_my_desk(id: String) -> void:
 	var tw := l.create_tween().set_loops()
 	tw.tween_property(l, "position:y", 2.25, 1.2).set_trans(Tween.TRANS_SINE)
 	tw.tween_property(l, "position:y", 2.1, 1.2).set_trans(Tween.TRANS_SINE)
+	# the day's missions, scribbled on a post-it stuck to the monitor
+	var pc_dev: Device = session.world.ent(d.pc_id)
+	if pc_dev and pc_dev.get_parent() is Node3D:
+		var mon := pc_dev.get_parent() as Node3D
+		var note := MeshInstance3D.new()
+		var q := QuadMesh.new()
+		q.size = Vector2(0.2, 0.2)
+		note.mesh = q
+		var m := StandardMaterial3D.new()
+		m.albedo_color = UiKit.POSTIT
+		m.roughness = 0.9
+		m.emission_enabled = true
+		m.emission = UiKit.POSTIT * 0.25
+		note.material_override = m
+		mon.add_child(note)
+		note.position = Vector3(-0.2, 0.43, 0.019)
+		note.rotation_degrees = Vector3(0, 0, 6)
+		_desk_note = Label3D.new()
+		UiKit.theme()
+		_desk_note.font = UiKit.hand_font
+		_desk_note.font_size = 44
+		_desk_note.pixel_size = 0.00042
+		_desk_note.outline_size = 0
+		_desk_note.modulate = UiKit.INK
+		_desk_note.width = 440.0
+		_desk_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_desk_note.position = Vector3(0, 0, 0.002)
+		_desk_note.double_sided = false
+		note.add_child(_desk_note)
+		_update_desk_note()
+
+
+var _desk_note: Label3D
+var _note_t := 0.0
+
+
+func _update_desk_note() -> void:
+	if _desk_note == null or session == null:
+		return
+	var ms: MissionSystem = session.missions.get(session.player.id) if session.player else null
+	if ms == null:
+		return
+	var txt := "À FAIRE :\n"
+	for id in ms.active:
+		txt += ("(fait) " if ms.is_done(id) else "- ") + ms.title(id) + "\n"
+	_desk_note.text = txt
 
 
 ## Multiplayer: the session is created by NetSync once the server sends the game start.
@@ -120,9 +166,13 @@ func _setup_local_player(ch: Character) -> void:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if pc == null:
 		return
+	_note_t -= delta
+	if _note_t <= 0.0:
+		_note_t = 2.0
+		_update_desk_note()
 	var modal := ChoicePanel.open_count > 0 or paused_panel != null
 	pc.blocked = modal
 	if modal:
@@ -180,6 +230,8 @@ func _on_ui_open(kind: String, info: Dictionary) -> void:
 	match kind:
 		"shop":
 			ShopPanel.open(ui_root, session, ch)
+		"objectives":
+			hud.toggle_objectives()
 		"work":
 			WorkPanel.open(ui_root, session, ch, target)
 		"denounce":
