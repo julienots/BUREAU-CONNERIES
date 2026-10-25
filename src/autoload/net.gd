@@ -6,6 +6,8 @@ extends Node
 ##  - Dedicated room server: `godot --headless -- --server --port=24681 [--code=ABCD]`
 ##  - Master (room list + invite codes, spawns room servers): `godot --headless -- --master`
 ##  - LAN host: a player hosts from the menu (server + local player in one process).
+##  - Internet (no server of ours): a player hosts through a public MQTT relay, the others
+##    join with the room code (RelayPeer). Also usable headless: --server --relay=URL.
 
 signal connected
 signal connection_failed
@@ -16,7 +18,8 @@ signal peer_left(id: int)
 const DEFAULT_PORT := 24680
 const MAX_CLIENTS := 10
 
-var peer: ENetMultiplayerPeer
+var peer: MultiplayerPeer           # ENetMultiplayerPeer (LAN / dedicated) or RelayPeer (Internet)
+var relay_status := ""              # last message from the Internet relay (shown in the lobby)
 var role := ""                 # "" | server | client | host
 var room_code := ""
 var token := ""                # reconnection token for this client
@@ -55,11 +58,11 @@ func is_server() -> bool:
 
 func host(port: int, max_clients := MAX_CLIENTS, as_player := false) -> int:
 	leave()
-	peer = ENetMultiplayerPeer.new()
-	var err := peer.create_server(port, max_clients)
+	var enet := ENetMultiplayerPeer.new()
+	var err := enet.create_server(port, max_clients)
 	if err != OK:
-		peer = null
 		return err
+	peer = enet
 	multiplayer.multiplayer_peer = peer
 	role = "host" if as_player else "server"
 	return OK
@@ -67,14 +70,54 @@ func host(port: int, max_clients := MAX_CLIENTS, as_player := false) -> int:
 
 func join(address: String, port: int) -> int:
 	leave()
-	peer = ENetMultiplayerPeer.new()
-	var err := peer.create_client(address, port)
+	var enet := ENetMultiplayerPeer.new()
+	var err := enet.create_client(address, port)
 	if err != OK:
-		peer = null
 		return err
+	peer = enet
 	multiplayer.multiplayer_peer = peer
 	role = "client"
 	return OK
+
+
+## Internet game through the public relay. `as_player`: the host also plays (phone host).
+func host_relay(code: String, as_player := true, max_clients := MAX_CLIENTS) -> int:
+	leave()
+	var rp := RelayPeer.new()
+	rp.status_text.connect(func(t): relay_status = t)
+	var err := rp.create_server(code, RelayPeer.broker_list(), max_clients)
+	if err != OK:
+		relay_status = rp.last_error
+		return err
+	peer = rp
+	multiplayer.multiplayer_peer = rp
+	role = "host" if as_player else "server"
+	room_code = rp.code
+	return OK
+
+
+func join_relay(code: String) -> int:
+	leave()
+	var rp := RelayPeer.new()
+	rp.status_text.connect(func(t): relay_status = t)
+	var err := rp.create_client(code, RelayPeer.broker_list())
+	if err != OK:
+		relay_status = rp.last_error
+		return err
+	peer = rp
+	multiplayer.multiplayer_peer = rp
+	role = "client"
+	room_code = rp.code
+	return OK
+
+
+func is_relay() -> bool:
+	return peer is RelayPeer
+
+
+## Host on the relay: is the room reachable yet?
+func relay_ready() -> bool:
+	return peer is RelayPeer and peer.get_connection_status() == MultiplayerPeer.CONNECTION_CONNECTED
 
 
 func leave() -> void:

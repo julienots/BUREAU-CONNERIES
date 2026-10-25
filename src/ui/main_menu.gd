@@ -100,8 +100,10 @@ func _refresh_money() -> void:
 
 
 func _pose_cast() -> void:
-	var spots := [[Vector3(7.0, 0, 5.4), 200.0, Data.coworkers[1]], [Vector3(6.0, 0, 4.6), 150.0, Data.coworkers[4]],
-		[Vector3(8.6, 0, 4.4), -110.0, Data.director], [Vector3(7.6, 0, 3.6), 10.0, Data.coworkers[0]]]
+	var cw: Array = Data.coworkers
+	var spots := [[Vector3(7.0, 0, 5.4), 200.0, cw[mini(9, cw.size() - 1)]], [Vector3(6.0, 0, 4.6), 150.0, cw[mini(8, cw.size() - 1)]],
+		[Vector3(8.6, 0, 4.4), -110.0, Data.director], [Vector3(7.6, 0, 3.6), 10.0, cw[mini(10, cw.size() - 1)]],
+		[Vector3(5.6, 0, 3.4), 60.0, cw[1]], [Vector3(9.4, 0, 5.6), -150.0, cw[mini(12, cw.size() - 1)]]]
 	for s in spots:
 		var h := Humanoid.new()
 		add_child(h)
@@ -116,6 +118,9 @@ func _pose_cast() -> void:
 		(hs[2] as Humanoid).emote = "suspicious"
 		(hs[2] as Humanoid).look_target = Vector3(6.0, 1.5, 4.6)
 		(hs[3] as Humanoid).typing = true
+	if hs.size() >= 6:
+		(hs[4] as Humanoid).emote = "wave"
+		(hs[5] as Humanoid).emote = "dance"
 
 
 func _process(delta: float) -> void:

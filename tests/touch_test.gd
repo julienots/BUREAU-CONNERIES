@@ -71,6 +71,25 @@ func _ready() -> void:
 	check("action button works while holding the joystick", p.seated_on != null, "actions=%s" % [actions])
 	s.request_action(p, p.id, "stand")
 	await get_tree().create_timer(0.8).timeout
+	# the character turns towards what it touches (camera aims at the chair, body faces away)
+	p.global_position = s.world.nav_closest(chair.global_position + desk.facing * -1.0)
+	await get_tree().create_timer(0.3).timeout
+	game.rig.yaw = atan2(-desk.facing.x, -desk.facing.z)
+	p.rotation.y = game.rig.yaw + PI
+	await get_tree().create_timer(0.4).timeout
+	var acts0: Array = game.pc.focus.get("actions", [])
+	var push_i := -1
+	for i in acts0.size():
+		if acts0[i].id == "push":
+			push_i = i
+	if push_i >= 0:
+		game.pc.selected = push_i
+		game.pc.press_interact()
+	await get_tree().create_timer(0.4).timeout
+	var to_chair := chair.global_position - p.global_position
+	to_chair.y = 0
+	check("character turns towards what it touches", push_i >= 0 and p.forward().dot(to_chair.normalized()) > 0.8, "dot=%.2f" % p.forward().dot(to_chair.normalized()))
+	p.global_position = s.world.nav_closest(chair.global_position + desk.facing * -1.0)
 	var np := s.world.nav_closest(p.global_position)
 	check("standing up does not put you inside the desk", Vector2(np.x - p.global_position.x, np.z - p.global_position.z).length() < 0.3, str(p.global_position))
 	# action list must stay fully on screen when it changes size (chair -> PC -> chair)

@@ -27,6 +27,7 @@ func _ready() -> void:
 	test_barks()
 	test_perception_helpers()
 	test_mission_pick()
+	test_scene_root_names()
 	print("UNIT RESULT passes=%d fails=%d" % [passes, fails])
 	get_tree().quit(fails)
 
@@ -226,6 +227,19 @@ func test_perception_helpers() -> void:
 	check("color blue", Perception.color_name(Color("#2f4f8f")) == "bleue")
 	check("color white", Perception.color_name(Color("#f2f2f2")) == "claire")
 	check("color orange", Perception.color_name(Color("#e07a2e")) == "orange")
+
+
+## Multiplayer RPC paths are /root/<scene root>/NetSync: a root named like an autoload gets
+## silently renamed to "@Node@<n>" (different on each machine) and every RPC fails.
+func test_scene_root_names() -> void:
+	var autoloads: Array = []
+	for prop in ProjectSettings.get_property_list():
+		var n: String = prop.name
+		if n.begins_with("autoload/"):
+			autoloads.append(n.substr(9))
+	var st: PackedScene = load("res://src/gameplay/game_scene.tscn")
+	var root_name: String = st.get_state().get_node_name(0)
+	check("game scene root name is unique (%s)" % root_name, not root_name in autoloads, str(autoloads))
 
 
 func test_mission_pick() -> void:

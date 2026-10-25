@@ -201,6 +201,10 @@ func trigger(a: Dictionary) -> void:
 		return
 	var ui := String(a.get("ui", ""))
 	var target: String = ch.id if a.get("self", false) else String(focus.get("target", ""))
+	# turn towards what we touch (kept for the whole duration of a timed action)
+	var node: Node = focus.get("node")
+	if not a.get("self", false) and node and is_instance_valid(node) and node.has_method("interact_point"):
+		ch.face_towards(node.interact_point(), maxf(0.8, float(a.get("time", 0.0)) + 0.4))
 	if ui in ["denounce", "rumor", "hide", "call", "shop", "objectives", "boss_interrogate", "boss_sanction"]:
 		ui_open.emit(ui, {"target": target, "action": a.id})
 		return

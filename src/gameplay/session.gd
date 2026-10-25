@@ -616,6 +616,9 @@ func _do_request(actor: Character, target_id: String, action_id: String, params:
 		return {"ok": false, "msg": "Action impossible."}
 	if String(def.get("blocked", "")) != "":
 		return {"ok": false, "msg": def.blocked}
+	# whoever acts turns towards the target (server side too, so everybody sees it)
+	if actor.face_dir == Vector3.ZERO or actor._face_until > 0.0:
+		actor.face_towards(tp, maxf(0.8, float(def.get("time", 0.0)) + 0.4), not actor.ai_driven)
 	if float(def.get("time", 0.0)) > 0.0:
 		actor.action = {"id": action_id, "target": target_id, "def": def, "t_left": float(def.time), "t_total": float(def.time),
 			"params": params, "start": actor.global_position, "noise_t": 0.0}

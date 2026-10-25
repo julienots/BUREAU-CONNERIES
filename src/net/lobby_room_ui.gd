@@ -104,7 +104,11 @@ func _start() -> void:
 
 func refresh(st: Dictionary, me: int) -> void:
 	var room: Dictionary = st.room
-	code_l.text = "Code : %s" % room.code
+	if String(room.code) == "LAN":
+		var ips := LobbyUI.local_ips()
+		code_l.text = "Même Wi-Fi — IP de l'hôte : %s" % (", ".join(ips) if not ips.is_empty() else "?") if Net.role == "host" else "Partie en Wi-Fi local"
+	else:
+		code_l.text = "Code : %s" % room.code
 	info_l.text = "%s · %s · %d min · max %d joueurs" % [room.name, "public" if room.public else "privé", int(room.day_minutes), int(room.max)]
 	for c in list.get_children():
 		c.queue_free()
@@ -124,7 +128,7 @@ func refresh(st: Dictionary, me: int) -> void:
 	settings_box.visible = am_owner
 	ready_b.text = "Pas prêt" if _ready_on else "Prêt !"
 	if st.players.size() < 2:
-		info_l.text += "  —  En attente d'autres joueurs (partage le code !)"
+		info_l.text += "  —  En attente d'autres joueurs : donne-leur le code (Jouer en ligne → Rejoindre avec le code)"
 
 
 func show_briefing(text: String) -> void:

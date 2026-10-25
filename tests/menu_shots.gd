@@ -23,4 +23,10 @@ func _ready() -> void:
 		ShopPanel.open(ui, null, null)
 		await get_tree().create_timer(1.0).timeout
 		get_viewport().get_texture().get_image().save_png(out + "/menu_shop.png")
+		for c in ui.get_children():
+			if c is ShopPanel:
+				c.close()
+		LobbyUI.open(ui)
+		await get_tree().create_timer(6.0).timeout
+		get_viewport().get_texture().get_image().save_png(out + "/menu_online.png")
 	get_tree().quit()

@@ -1,6 +1,7 @@
 class_name NetSync
 extends Node
-## Multiplayer glue living at /root/Game/NetSync on the server and on every client.
+## Multiplayer glue living at /root/GameScene/NetSync on the server and on every client
+## (the scene root must have the same, explicit name everywhere for RPC paths to match).
 ## Server: lobby (roles, ready, settings), authoritative Session, snapshots (15 Hz),
 ## private per-player state (money, inventory, missions — and the director's notebook,
 ## sent ONLY to the director), validated requests, verdicts, scoring, reconnection.
@@ -224,6 +225,9 @@ func _show_lobby() -> void:
 
 ## Status file read by the master server to list rooms (same machine).
 func _write_status() -> void:
+	if server and Net.is_relay():
+		(Net.peer as RelayPeer).announce({"name": room.name, "players": players.size(), "max": room.max, "phase": phase, "public": room.public})
+		return
 	if not server or Net.role == "host":
 		return
 	DirAccess.make_dir_recursive_absolute("user://rooms")
@@ -254,7 +258,7 @@ func _start_game() -> void:
 	var humans := _humans()
 	room["seed"] = seed
 	room["humans"] = humans
-	room["npc"] = 8
+	room["npc"] = 14
 	print("[server] starting game seed=%d humans=%s" % [seed, humans.keys()])
 	_build_session(true)
 	for pid in players:

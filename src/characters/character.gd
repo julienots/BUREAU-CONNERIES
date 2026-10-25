@@ -427,7 +427,11 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 	_handle_collisions(hv)
 	var moved := Vector2(global_position.x - before.x, global_position.z - before.z).length()
-	# facing
+	# facing (a temporary "face the thing I touch" ends with time or as soon as we walk away)
+	if _face_until > 0.0 and (Game.time() > _face_until or (move_dir.length() > 0.2 and action.is_empty())):
+		_face_until = 0.0
+		face_dir = Vector3.ZERO
+		clear_look()
 	var fd := face_dir if face_dir != Vector3.ZERO else (hv if hv.length() > 0.15 else Vector3.ZERO)
 	if net_drive != Vector3.INF and face_dir == Vector3.ZERO:
 		fd = Vector3(-sin(net_drive_yaw), 0, -cos(net_drive_yaw))
@@ -833,6 +837,24 @@ func do_emote(e: String, dur := 2.0) -> void:
 
 func look_at_point(p: Vector3) -> void:
 	humanoid.look_target = p
+
+
+var _face_until := 0.0
+
+## Turn (body + head) towards what we are interacting with, for `dur` seconds.
+func face_towards(pos: Vector3, dur := 0.8, reach := true) -> void:
+	if seated_on or is_down():
+		look_at_point(pos)
+		return
+	var d := pos - global_position
+	d.y = 0
+	if d.length() < 0.05:
+		return
+	face_dir = d.normalized()
+	_face_until = Game.time() + dur
+	look_at_point(pos)
+	if reach and emote_until < Game.time():
+		do_emote("point", minf(dur, 0.6))
 
 
 func clear_look() -> void:

@@ -53,7 +53,7 @@ Manette : stick gauche/droit, A agir, X secondaire, B lâcher.
 | Sauvegarde locale versionnée (+ migration), paramètres, touches | ✅ | e2e |
 | Écran de démarrage SuperEssence Studio, menu 3D, personnalisation, paramètres, crédits, tutoriel interactif | ✅ | captures |
 | SFX de bureau (77) et **voix en charabia** (240 répliques, 10 voix × 8 émotions), musiques | ✅ | générés par `tools/gen_audio.py` |
-| Multijoueur : serveur dédié, serveur maître (liste publique, codes d'invitation), hébergement LAN, salon, rôles, revanche | ✅ | 1 serveur + 3 clients réels (bots) ; test du serveur maître |
+| Multijoueur : **Internet sans serveur** (relais MQTT public, code de 4 lettres, liste des parties publiques), même Wi-Fi, serveur dédié / maître, salon, rôles, revanche | ✅ | `tools/relay_test.sh` (journée complète + revanche via un broker MQTT local), `tools/relay_ui_test.sh` (2 jeux passent par le vrai menu), `tools/mp_test.sh` |
 | IA générative locale facultative (compatible Ollama) | ⚠️ partiel | code non bloquant ; pas testé avec un vrai modèle |
 
 ## Limites connues (honnêtement)
@@ -62,19 +62,29 @@ Manette : stick gauche/droit, A agir, X secondaire, B lâcher.
   mais performances et confort tactile restent à valider sur appareil. Signé avec une clé de **debug**
   (pour le Play Store il faudra une clé de release).
 - Les chutes utilisent une bascule physique contrôlée, pas un ragdoll complet.
-- Multijoueur testé en local (même machine) ; pas encore sur Internet/NAT. La physique des objets est simulée par
-  le serveur, les clients interpolent. La reconnexion est implémentée mais n'a pas de test automatisé.
+- Multijoueur Internet testé avec un broker MQTT **local** (mêmes protocoles) : l'environnement de build ne peut
+  pas joindre les relais publics, donc la connexion au relais public n'a pas pu être testée d'ici. Latence ≈ celle
+  du relais (100–300 ms). La physique des objets est simulée par l'hôte, les autres interpolent. La reconnexion est implémentée mais n'a pas de test automatisé.
 - Modèles 3D entièrement procéduraux (sites d'assets bloqués depuis l'environnement de build).
 - Pas de version Web (ENet) ni iOS.
 
-## Multijoueur — héberger
+## Multijoueur — jouer en ligne
 
-Vercel ne suffit pas (connexions UDP persistantes). Sur une VM/serveur avec ports UDP ouverts :
+**Sur Internet, sans serveur à installer** : Jouer en ligne → « CRÉER UNE PARTIE » (le téléphone/PC qui crée
+la partie l'héberge) → donner le code de 4 lettres aux amis → ils tapent le code dans « REJOINDRE AVEC LE
+CODE » (ou choisissent la partie dans la liste des parties publiques). Le trafic passe par un relais MQTT
+public et gratuit, chiffré (WebSocket TLS) : `broker.emqx.io`, puis `broker.hivemq.com`, puis
+`test.mosquitto.org` si le premier ne répond pas (`src/net/relay_peer.gd`). Un autre relais peut être imposé
+avec `--relay=wss://…` ou le paramètre `relay_url`.
+
+**Même Wi-Fi / partage de connexion** : « Héberger ici », les autres tapent l'IP affichée chez l'hôte.
+
+**Avancé — ton propre serveur** (VM avec ports UDP ouverts) :
 ```
 godot --headless --path . -- --master --port=24680      # annuaire + codes, crée les salons (ports 24681+)
 godot --headless --path . -- --server --port=24681       # ou un salon seul, sans annuaire
+godot --headless --path . -- --server --relay=wss://broker.emqx.io:8084/mqtt --code=ABCD   # salon dédié via le relais
 ```
-Dans le jeu : Jouer en ligne → adresse du serveur → créer / rejoindre (code) — ou « Héberger en LAN ».
 1 directeur humain + 1 à 8 employés ; si le directeur se déconnecte, l'IA prend le relais.
 
 ## Tests

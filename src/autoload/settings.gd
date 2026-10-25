@@ -12,8 +12,8 @@ var values := {
 	"shadows": true,
 	"ssao": true,
 	"glow": true,
-	"npc_count": 12,
-	"settings_version": 2,
+	"npc_count": 14,
+	"settings_version": 3,
 	"vol_master": 0.9,
 	"vol_music": 0.45,
 	"vol_sfx": 0.9,
@@ -31,6 +31,7 @@ var values := {
 	"llm_endpoint": "http://127.0.0.1:11434/api/generate",
 	"llm_model": "qwen2.5:0.5b",
 	"server_address": "127.0.0.1",
+	"relay_url": "",             # empty = the public relays built into the game
 	"server_port": 24680,
 	"player_name": "Joueur",
 	"tutorial_done": false,
@@ -84,8 +85,6 @@ func set_v(key: String, v: Variant, save := true) -> void:
 
 func load_settings() -> void:
 	var cfg := ConfigFile.new()
-	if is_mobile():
-		values.npc_count = 10   # phones: a bit lighter by default (up to 14 in the settings)
 	if cfg.load(PATH) != OK:
 		return
 	for k in values.keys():
@@ -93,11 +92,11 @@ func load_settings() -> void:
 			var v: Variant = cfg.get_value("settings", k)
 			if typeof(v) == typeof(values[k]) or (typeof(values[k]) == TYPE_FLOAT and typeof(v) == TYPE_INT):
 				values[k] = v
-	if int(cfg.get_value("settings", "settings_version", 1)) < 2:
-		# v2: 14 coworkers instead of 8 -> old saves at the old maximum get the new default
-		if int(values.npc_count) >= 8:
-			values.npc_count = 10 if is_mobile() else 12
-		values.settings_version = 2
+	if int(cfg.get_value("settings", "settings_version", 1)) < 3:
+		# v3: the whole team (14 coworkers) by default; it can still be lowered in the settings
+		values.npc_count = 14
+		values.settings_version = 3
+		save_settings()
 	for a in DEFAULT_KEYS.keys():
 		if cfg.has_section_key("keys", a):
 			var arr: Variant = cfg.get_value("keys", a)
