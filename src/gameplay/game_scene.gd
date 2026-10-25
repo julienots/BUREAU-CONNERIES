@@ -52,10 +52,35 @@ func _start_solo(args: Dictionary) -> void:
 	_setup_local_player(session.player)
 	session.start_day_solo()
 	session.day_over.connect(_on_day_over)
+	_mark_my_desk(session.player.id)
 	if not Settings.get_v("tutorial_done"):
 		var t := Tutorial.new()
 		add_child(t)
 		t.setup(session, hud, session.player)
+	else:
+		get_tree().create_timer(1.5).timeout.connect(func():
+			if is_instance_valid(hud):
+				hud.brief_objectives())
+
+
+## Floating "TON BUREAU" sign above the local player's desk (only they see it).
+func _mark_my_desk(id: String) -> void:
+	var d: Dictionary = session.world.desk_of(id)
+	if d.is_empty():
+		return
+	var l := Label3D.new()
+	l.text = "TON BUREAU"
+	l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	l.font_size = 64
+	l.outline_size = 14
+	l.pixel_size = 0.004
+	l.modulate = Color(1.0, 0.85, 0.2)
+	l.no_depth_test = false
+	add_child(l)
+	l.global_position = Vector3(d.pos.x, 2.1, d.pos.z)
+	var tw := l.create_tween().set_loops()
+	tw.tween_property(l, "position:y", 2.25, 1.2).set_trans(Tween.TRANS_SINE)
+	tw.tween_property(l, "position:y", 2.1, 1.2).set_trans(Tween.TRANS_SINE)
 
 
 ## Multiplayer: the session is created by NetSync once the server sends the game start.
@@ -83,9 +108,9 @@ func _setup_local_player(ch: Character) -> void:
 		add_child(mobile)
 		mobile.setup(pc)
 		mobile.pause_requested.connect(_toggle_pause)
-		mobile.objectives_requested.connect(func(): hud.obj_panel.visible = not hud.obj_panel.visible)
+		hud.pause_btn.pressed.connect(_toggle_pause)
+		mobile.objectives_requested.connect(hud.toggle_objectives)
 		rig.auto_follow = true
-		hud.obj_panel.visible = false
 	session.interrogation_started.connect(func(info): InterrogationPanel.open(ui_root, session, ch, info))
 	session.interrogation_finished.connect(_on_interrogation_done)
 	ch.fell.connect(func(_c): rig.shake(0.6))

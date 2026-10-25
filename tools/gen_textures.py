@@ -390,6 +390,19 @@ def icons():
         "lunettes": ((40, 100, 160, 255), lambda d: (d.ellipse([16, 46, 60, 82], fill=(20, 20, 20)), d.ellipse([68, 46, 112, 82], fill=(20, 20, 20)), d.line([(60, 58), (68, 58)], fill=(20, 20, 20), width=6))),
         "cravate_or": ((60, 60, 80, 255), lambda d: (d.polygon([(54, 20), (74, 20), (68, 34), (82, 96), (64, 114), (46, 96), (60, 34)], fill=(255, 200, 40)),)),
         "talkie": ((50, 90, 60, 255), lambda d: (d.rounded_rectangle([42, 34, 86, 110], 8, fill=(30, 30, 30)), d.rectangle([70, 12, 76, 36], fill=(30, 30, 30)), d.rectangle([50, 46, 78, 70], fill=(120, 200, 120)))),
+        "klaxon": ((200, 60, 40, 255), lambda d: (d.polygon([(30, 52), (70, 40), (100, 22), (100, 106), (70, 88), (30, 76)], fill=(250, 210, 40)), d.ellipse([16, 46, 44, 82], fill=(240, 60, 60)),
+                                                   d.arc([96, 30, 124, 98], 300, 60, fill=(255, 255, 255), width=5))),
+        "poil_gratter": ((150, 90, 160, 255), lambda d: [d.line([(x, y), (x + 8, y - 14)], fill=(255, 230, 120), width=4) for x, y in
+                                                         [(int(rng.integers(16, 100)), int(rng.integers(30, 112))) for _ in range(26)]]),
+        "cafard": ((220, 200, 160, 255), lambda d: (d.ellipse([38, 30, 90, 104], fill=(80, 45, 25)), d.ellipse([50, 18, 78, 40], fill=(60, 35, 20)),
+                                                    [d.line([(40 + (k % 2) * 48, 46 + (k // 2) * 22), (20 + (k % 2) * 88, 40 + (k // 2) * 26)], fill=(50, 30, 15), width=4) for k in range(6)],
+                                                    d.line([(58, 20), (40, 4)], fill=(50, 30, 15), width=3), d.line([(70, 20), (88, 4)], fill=(50, 30, 15), width=3))),
+        "boule_puante": ((90, 140, 60, 255), lambda d: (d.ellipse([34, 44, 94, 104], fill=(170, 210, 90)), d.arc([30, 10, 60, 50], 180, 360, fill=(120, 200, 60), width=6),
+                                                         d.arc([66, 4, 100, 44], 180, 360, fill=(120, 200, 60), width=6))),
+        "serpent": ((60, 110, 200, 255), lambda d: (d.rounded_rectangle([30, 70, 98, 112], 8, fill=(220, 60, 60)), d.line([(64, 72), (50, 56), (78, 44), (52, 30)], fill=(80, 200, 80), width=12),
+                                                     d.ellipse([42, 14, 66, 36], fill=(80, 200, 80)))),
+        "pistolet_eau": ((50, 150, 220, 255), lambda d: (d.rounded_rectangle([20, 44, 96, 70], 12, fill=(255, 140, 30)), d.rounded_rectangle([36, 64, 58, 104], 8, fill=(255, 140, 30)),
+                                                          d.ellipse([60, 26, 90, 50], fill=(80, 200, 255)), [d.ellipse([100 + k * 6, 52 - k, 106 + k * 6, 58 - k], fill=(160, 220, 255)) for k in range(3)])),
         "plante": ((70, 120, 70, 255), lambda d: (d.polygon([(40, 76), (88, 76), (80, 112), (48, 112)], fill=(180, 90, 50)), d.ellipse([34, 24, 74, 80], fill=(60, 170, 70)), d.ellipse([58, 18, 98, 76], fill=(40, 140, 60)))),
     }
     for name, (col, draw) in specs.items():

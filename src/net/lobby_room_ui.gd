@@ -112,7 +112,7 @@ func refresh(st: Dictionary, me: int) -> void:
 	for p in st.players:
 		var row := UiKit.hbox(10)
 		list.add_child(row)
-		var role_txt := "👔 DIRECTEUR" if p.role == "director" else "💼 Employé"
+		var role_txt := "DIRECTEUR" if p.role == "director" else "Employé"
 		var name_l := UiKit.label(String(p.name) + ("  (toi)" if int(p.id) == me else "") + ("  ★" if p.owner else ""), 20, UiKit.YELLOW if int(p.id) == me else UiKit.TEXT)
 		name_l.custom_minimum_size = Vector2(320, 0)
 		row.add_child(name_l)

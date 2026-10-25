@@ -536,6 +536,15 @@ func _apply_emote(p: Dictionary) -> void:
 			p.elbow_r = Vector3(2.2, 0, -0.5)
 			p.spine.x += 0.15
 			p.neck.y = 0.6
+		"itch":
+			var f := sin(t * 22.0)
+			p.shoulder_l = Vector3(0.6 + f * 0.4, 0, -0.3)
+			p.elbow_l = Vector3(1.9, 0, 0.6 + f * 0.3)
+			p.shoulder_r = Vector3(-0.3 - f * 0.3, 0, 0.4)
+			p.elbow_r = Vector3(1.6, 0, -0.6)
+			p.spine.y = sin(t * 9.0) * 0.35
+			p.spine.z = sin(t * 7.0) * 0.12
+			p._pelvis_y = float(p._pelvis_y) + absf(sin(t * 11.0)) * 0.04
 		"stretch":
 			p.shoulder_l = Vector3(2.9, 0, -0.2)
 			p.shoulder_r = Vector3(2.9, 0, 0.2)

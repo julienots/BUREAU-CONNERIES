@@ -40,26 +40,44 @@ func _ready() -> void:
 	grad.offset_right = 760
 	grad.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	ui.add_child(grad)
-	var v := UiKit.vbox(6)
-	v.position = Vector2(70, 26)
+	# compact layout: fits a 720 px high phone screen in landscape
+	var v := UiKit.vbox(8)
+	v.position = Vector2(56, 22)
 	ui.add_child(v)
-	var title := UiKit.label("OFFICE", 78, Color.WHITE, true)
-	v.add_child(title)
-	var title2 := UiKit.label("MAYHEM", 78, UiKit.YELLOW, true)
-	title2.position.y -= 30
-	v.add_child(title2)
-	v.add_child(UiKit.label("Bêtises, mensonges et chaises qui roulent.", 20, UiKit.MUTED))
-	main_box = UiKit.vbox(8)
+	var th := UiKit.hbox(16)
+	v.add_child(th)
+	th.add_child(UiKit.label("OFFICE", 62, Color.WHITE, true))
+	th.add_child(UiKit.label("MAYHEM", 62, UiKit.YELLOW, true))
+	v.add_child(UiKit.label("Bêtises, mensonges et chaises qui roulent.", 19, UiKit.MUTED))
+	main_box = UiKit.vbox(10)
 	v.add_child(main_box)
-	main_box.add_child(UiKit.button("Jouer en solo", _solo, 340))
-	main_box.add_child(UiKit.button("Jouer en ligne", func(): _online(""), 340))
-	main_box.add_child(UiKit.button("Rejoindre une partie", _join_code, 340))
-	main_box.add_child(UiKit.button("Personnalisation", func(): CustomizePanel.open(ui), 340))
-	main_box.add_child(UiKit.button("Paramètres", func(): SettingsPanel.open(ui), 340))
-	main_box.add_child(UiKit.button("Crédits", _credits, 340))
-	if not Settings.is_mobile():
-		main_box.add_child(UiKit.button("Quitter", func(): get_tree().quit(), 340))
-	(main_box.get_child(0) as Control).grab_focus()
+	var play := UiKit.accent(UiKit.button("JOUER EN SOLO", _solo, 470, 28))
+	play.custom_minimum_size.y = 74
+	play.add_theme_font_override("font", UiKit.title_font)
+	main_box.add_child(play)
+	var r1 := UiKit.hbox(10)
+	main_box.add_child(r1)
+	r1.add_child(UiKit.button("Jouer en ligne", func(): _online(""), 230))
+	r1.add_child(UiKit.button("Rejoindre (code)", _join_code, 230))
+	var r2 := UiKit.hbox(10)
+	main_box.add_child(r2)
+	r2.add_child(UiKit.button("Boutique", func():
+		var sp := ShopPanel.open(ui, null, null)
+		sp.closed.connect(_refresh_money), 230))
+	r2.add_child(UiKit.button("Personnalisation", func(): CustomizePanel.open(ui), 230))
+	var r3 := UiKit.hbox(10)
+	main_box.add_child(r3)
+	var mobile := Settings.is_mobile()
+	var w := 230.0 if mobile else 150.0
+	r3.add_child(UiKit.button("Paramètres", func(): SettingsPanel.open(ui), w, 19))
+	r3.add_child(UiKit.button("Crédits", _credits, w, 19))
+	if not mobile:
+		r3.add_child(UiKit.button("Quitter", func(): get_tree().quit(), w, 19))
+	for row in [r1, r2, r3]:
+		for b in row.get_children():
+			(b as Control).size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	main_box.custom_minimum_size.x = 470
+	play.grab_focus()
 	var info := UiKit.panel()
 	info.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 	info.grow_horizontal = Control.GROW_DIRECTION_BEGIN

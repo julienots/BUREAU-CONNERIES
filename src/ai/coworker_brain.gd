@@ -26,6 +26,9 @@ var bribed_by := ""
 var _last_bark := -100.0
 var _work_until := 0.0
 var _last_noise_react := -100.0
+var _notice_t := 0.0
+var _last_comment := -100.0
+var _mine_t := -100.0
 
 
 func setup(ch: Character, session: Node, seed: int) -> void:
@@ -68,7 +71,40 @@ func _think(dt: float) -> void:
 	if s.director_interrogating(c.id):
 		c.stop()
 		return
+	_notice_t -= dt
+	if _notice_t <= 0.0:
+		_notice_t = 1.0
+		_notice_humans()
 	_run_state(dt)
+
+
+## Coworkers react to what the players do around them, not only to pranks.
+func _notice_humans() -> void:
+	if state in ["report", "diversion", "meeting"]:
+		return
+	var now: float = s.now()
+	for hid in s.human_ids:
+		var h: Character = s.characters.get(hid)
+		if h == null or h.is_director() or h.is_down():
+			continue
+		var d := c.global_position.distance_to(h.global_position)
+		if d > 9.0:
+			continue
+		# someone carries MY stuff
+		if h.held and h.held.owner_id == c.id and now - _mine_t > 25.0 and Perception.visibility(s.world, c, h, 150.0, 9.0) > 0.15:
+			_mine_t = now
+			c.flash_alert("!", Color(1, 0.3, 0.2), 2.0)
+			react_to("angry", "mine", "angry", 2.0, h.eye_position())
+			mem.add_grievance(hid, 0.25)
+			s.relations.change(c.id, hid, -0.04)
+			s.npc_reaction(c, "saw_my_object", {"by": hid, "owner": c.id})
+			return
+		# running in the corridors
+		if d < 3.5 and h.want_run and Vector2(h.velocity.x, h.velocity.z).length() > 3.0 and now - _last_comment > 20.0 and rng.randf() < 0.45:
+			_last_comment = now
+			c.look_at_point(h.eye_position())
+			_say_cat("running", "neutral")
+			return
 
 
 var debug := false
@@ -195,6 +231,18 @@ func _st_work() -> void:
 					_switch("fetch_chair")
 					return
 				if chair.occupant != "":
+					if chair.occupant in s.human_ids:
+						var squatter: Character = s.characters.get(chair.occupant)
+						if squatter:
+							c.look_at_point(squatter.eye_position())
+						c.do_emote("angry", 2.5)
+						_say_cat("my_chair_taken", "angry")
+						mem.add_grievance(chair.occupant, 0.3)
+						s.relations.change(c.id, chair.occupant, -0.04)
+						s.npc_reaction(c, "chair_taken", {"by": chair.occupant, "owner": c.id})
+						step = 4
+						timer = 7.0
+						return
 					_switch("wander")
 					return
 				c.sit_on(chair)
@@ -229,8 +277,38 @@ func _st_work() -> void:
 			if not slacking:
 				c.humanoid.typing = not it_down
 				c.productivity = minf(100.0, c.productivity + 0.02)
+			if not slacking and not it_down:
+				_desk_life(d)
 			if s.now() > _work_until:
 				_switch("idle")
+		4:
+			# waiting for the player to get off my chair
+			var chair2: Prop = s.world.ent(d.chair_id)
+			if chair2 and chair2.occupant == "":
+				step = 1
+			elif timer <= 0.0:
+				_say_cat("my_chair_taken", "angry")
+				_switch("wander")
+
+
+## Ambient desk life: soft keyboard clicks near the player, the desk phone rings now and then.
+func _desk_life(d: Dictionary) -> void:
+	var lp: Character = s.player
+	if lp and lp.global_position.distance_to(c.global_position) < 9.0 and rng.randf() < 0.35:
+		SoundFx.play_at("key_%d" % rng.randi_range(0, 2), c.global_position + Vector3(0, 0.8, 0) + d.facing * 0.4, 10.0, rng.randf_range(0.9, 1.15))
+	if rng.randf() < 0.0012:
+		var ph: Device = s.phone_of(c.id)
+		if ph and float(ph.state.get("ringing", 0.0)) <= 0.0:
+			ph.state.ringing = 5.0
+			ph.state.by = ""
+			s.set_device_state(ph)
+			s.get_tree().create_timer(rng.randf_range(2.5, 4.5)).timeout.connect(func():
+				if is_instance_valid(c) and c.seated_on and state == "work":
+					ph.state.ringing = 0.0
+					s.set_device_state(ph)
+					s.emit_sound(ph.interact_point(), 22.0, "phone_pickup", "", ph.ent_id())
+					c.do_emote("phone", 7.0)
+					_say_cat("phone_call", "neutral"))
 
 
 func _check_desk_pranks() -> void:
@@ -674,6 +752,8 @@ func on_hear(ev: Dictionary, perceived: float) -> void:
 	var now: float = s.now()
 	if perceived > 30.0:
 		c.look_at_point(ev.pos + Vector3(0, 0.8, 0))
+	if perceived > 42.0:
+		c.flash_alert("?", Color(1, 0.85, 0.2), 1.8)
 	if perceived > 42.0 and now - _last_noise_react > 6.0:
 		_last_noise_react = now
 		match kind:
@@ -700,6 +780,7 @@ func on_witness(act: Dictionary, info: Dictionary) -> void:
 	var actor_c: Character = s.characters.get(act.actor)
 	if actor_c:
 		c.look_at_point(actor_c.eye_position())
+	c.flash_alert("!", Color(1, 0.3, 0.2), 2.5)
 	if act.get("victim", "") == c.id:
 		c.do_emote("angry", 2.5)
 		_say_cat("victim_" + _victim_cat(act.kind), "angry")

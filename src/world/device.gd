@@ -172,6 +172,8 @@ func get_actions(actor: Node) -> Array:
 				out.append({"id": "open", "label": "Ouvrir / fouiller", "time": 1.0, "noise": 8.0, "sus": 0.3 if not mine else 0.0})
 			if actor.has_method("pocket_items") and not actor.pocket_items().is_empty():
 				out.append({"id": "hide", "label": "Cacher un objet ici", "time": 1.5, "noise": 6.0, "sus": 0.5, "ui": "hide"})
+			if (kind == "boss_drawer" or kind == "drawer") and actor.has_item("serpent") and not state.get("snake", false):
+				out.append({"id": "snake", "label": "Cacher le serpent en boîte", "time": 2.0, "noise": 5.0, "sus": 0.7, "prank": true, "act": "snake_trap", "sev": 2})
 			if (kind == "boss_drawer" or kind == "drawer") and actor.has_item("confettis") and not state.get("confetti", false):
 				out.append({"id": "confetti", "label": "Piéger avec les confettis", "time": 2.5, "noise": 6.0, "sus": 0.9, "prank": true, "act": "confetti_trap", "sev": 3})
 		"printer":
@@ -267,6 +269,11 @@ func perform(actor: Node, action: String, params: Dictionary) -> Dictionary:
 			return s.open_container(actor, self)
 		"hide":
 			return s.hide_in_container(actor, self, params.get("item", ""))
+		"snake":
+			if not actor.consume_item("serpent"):
+				return {"ok": false, "msg": "Pas de serpent."}
+			state.snake = true
+			state.snake_by = me
 		"confetti":
 			if not actor.consume_item("confettis"):
 				return {"ok": false, "msg": "Pas de confettis."}

@@ -61,6 +61,8 @@ var _smell_t := 0.0
 var _hud_t := 0.0
 var _clock: Dictionary = {}
 var accomplices: Dictionary = {}    # npc id -> human id
+var trust: Dictionary = {}          # human id -> 0..100, the director's opinion (gauge in the HUD)
+var _truthful_denounce: Dictionary = {}  # accused id -> denouncer id
 var bribes: Dictionary = {}
 var day_failed := false
 var _ended := false
@@ -209,6 +211,8 @@ func start_day_solo() -> void:
 		side_ids.append(sc.id)
 	_setup_missions("player", mids, side_ids)
 	economy.setup_solo("player")
+	trust["player"] = float(p.get("boss_trust", 50.0)) * 0.6 + 20.0   # yesterday's mood partly carries over
+	change_trust("player", 0.0)
 	economy.money_changed.connect(func(_w, _a): hud_changed.emit())
 	for it in p.owned:
 		if Data.items.get(it, {}).get("kind", "") == "passive":
@@ -216,6 +220,38 @@ func start_day_solo() -> void:
 	player.apply_cosmetics(p.equipped_cosmetics)
 	running = true
 	notify(player, "Jour %d — Directeur : %s. %s" % [day_number, Data.director_profiles[profile].label, Data.director_profiles[profile].desc], "event")
+
+
+## The director's opinion of an employee: changes with what they do, and changes the game
+## (how fast he suspects them, interrogation odds, salary bonus).
+func change_trust(id: String, delta: float, reason := "") -> void:
+	if not id in human_ids or id == "boss":
+		return
+	var before := float(trust.get(id, 50.0))
+	var v := clampf(before + delta, 0.0, 100.0)
+	trust[id] = v
+	if boss_brain:
+		boss_brain.sus.person_gain[id] = lerpf(1.45, 0.65, v / 100.0)
+	var ch: Character = characters.get(id)
+	if absf(delta) >= 4.0 and ch:
+		notify(ch, "Le chef %s : %s (%+d)" % ["t'apprécie" if delta > 0 else "t'en veut", reason, int(round(delta))], "good" if delta > 0 else "warn")
+	hud_changed.emit()
+
+
+func trust_of(id: String) -> float:
+	return float(trust.get(id, 50.0))
+
+
+static func trust_mood(v: float) -> String:
+	if v < 20.0:
+		return "Furieux contre toi"
+	if v < 40.0:
+		return "Méfiant"
+	if v < 60.0:
+		return "Neutre"
+	if v < 80.0:
+		return "Content de toi"
+	return "Tu es son chouchou"
 
 
 func _setup_missions(who: String, mids: Array, side_ids: Array) -> void:
@@ -242,6 +278,7 @@ func _process(delta: float) -> void:
 			ms.poll(delta)
 		_update_actions(delta)
 		_update_smell(delta)
+		_update_cafards(delta)
 		_update_productivity(delta)
 		if diversion.size() > 0 and now() > float(diversion.until):
 			end_diversion(null)
@@ -699,6 +736,7 @@ func work_done(actor: Character, params: Dictionary) -> Dictionary:
 	var score := clampf(float(params.get("score", 0.5)), 0.0, 1.0)
 	actor.productivity = minf(100.0, actor.productivity + 4.0 + 8.0 * score)
 	actor.last_work_time = now()
+	change_trust(actor.id, 1.5 + score * 1.5, "travail sérieux")
 	if stats.has(actor.id):
 		stats[actor.id].work += 1
 	economy.add(actor.id, int(round(2 + 4 * score)))
@@ -727,8 +765,16 @@ func item_actions(actor: Character) -> Array:
 				out.append({"id": "drop_item", "label": "Poser le buzzer", "item": it})
 			"banane":
 				out.append({"id": "drop_item", "label": "Poser la peau de banane", "item": it})
-			"confettis", "post_its":
-				pass
+			"confettis", "post_its", "poil_gratter", "serpent":
+				pass  # used on a target (chair / drawer)
+			"klaxon":
+				out.append({"id": "use_klaxon", "label": "Klaxonner ! (%d)" % charges(actor, it), "item": it})
+			"boule_puante":
+				out.append({"id": "use_stink", "label": "Lâcher la boule puante", "item": it})
+			"pistolet_eau":
+				out.append({"id": "use_water", "label": "Arroser (pistolet à eau, %d)" % charges(actor, it), "item": it})
+			"cafard":
+				out.append({"id": "drop_item", "label": "Poser le faux cafard", "item": it})
 			_:
 				out.append({"id": "drop_item", "label": "Poser : " + nm, "item": it})
 	for p in world.props_with_tag("buzzer"):
@@ -752,6 +798,8 @@ func _self_action(actor: Character, action_id: String, params: Dictionary) -> Di
 			var p := actor.held
 			var f := actor.forward()
 			actor.drop_held((f * 6.0 + Vector3.UP * 2.0) * minf(p.mass, 6.0))
+			p.set_meta("thrown_t", now())
+			p.set_meta("thrown_by", actor.id)
 			var act := record_act(actor, "throw", 1 if p.mass < 2.0 else 2, actor.global_position, p.ent_id(), "")
 			_act_by_ent[p.ent_id()] = act
 		"stand":
@@ -805,18 +853,291 @@ func _self_action(actor: Character, action_id: String, params: Dictionary) -> Di
 			if not economy.take_from_stock(actor.id, item, actor):
 				return {"ok": false, "msg": "Impossible de prendre cet objet."}
 		"buy":
+			var n_before := actor.items.size()
 			var why := economy.buy(actor.id, item, actor)
 			if why != "":
 				return {"ok": false, "msg": why}
 			if actor == player:
 				SoundFx.ui("cash_register")
-			notify(actor, "Acheté : " + Data.item_name(item), "good")
+			if actor.items.size() == n_before and not String(Data.item_info(item).get("kind", "")) in ["passive", "cosmetic", "coop"]:
+				notify(actor, "Acheté : %s — poches pleines, rangé dans ton stock." % Data.item_name(item), "good")
+			else:
+				notify(actor, "Acheté : " + Data.item_name(item), "good")
 			game_event("bought", {"actor": actor.id, "item": item})
+		"use_klaxon":
+			if not use_charge(actor, "klaxon"):
+				return {"ok": false, "msg": "Pas de klaxon."}
+			_use_klaxon(actor)
+		"use_stink":
+			if not actor.consume_item("boule_puante"):
+				return {"ok": false, "msg": "Pas de boule puante."}
+			_use_stink(actor)
+		"use_water":
+			if not actor.has_item("pistolet_eau"):
+				return {"ok": false, "msg": "Pas de pistolet à eau."}
+			var tgt := _water_target(actor)
+			if tgt == null:
+				return {"ok": false, "msg": "Personne en face de toi (vise un collègue à moins de 5 m)."}
+			use_charge(actor, "pistolet_eau")
+			_use_water(actor, tgt)
 		"call_phone_self":
 			pass
 		_:
 			return {"ok": false, "msg": "Action inconnue."}
 	return {"ok": true}
+
+
+# ------------------------------------------------------------------ farces (prank shop items)
+## Remaining uses of a multi-use pocket item (klaxon, water pistol).
+func charges(actor: Character, item: String) -> int:
+	return int(actor.get_meta("charges_" + item, int(Data.item_info(item).get("uses", 1))))
+
+
+func use_charge(actor: Character, item: String) -> bool:
+	if not actor.has_item(item):
+		return false
+	var n := charges(actor, item) - 1
+	if n <= 0:
+		actor.consume_item(item)
+		actor.remove_meta("charges_" + item)
+		notify(actor, "%s : vide !" % Data.item_name(item), "warn")
+	else:
+		actor.set_meta("charges_" + item, n)
+	return true
+
+
+## Every successful farce pays the prankster a small bonus.
+func prank_reward(by: String, amount: int, reason: String) -> void:
+	if amount <= 0 or not characters.has(by) or not economy.wallets.has(by):
+		return
+	economy.add(by, amount)
+	if stats.has(by):
+		stats[by].earned += amount
+	notify(characters[by], "Prime de farce : %s  +%d €" % [reason, amount], "good")
+	game_event("prank_reward", {"actor": by, "amount": amount, "reason": reason})
+	hud_changed.emit()
+
+
+func _reward_of(item: String) -> int:
+	return int(Data.item_info(item).get("reward", 0))
+
+
+## NPCs (and the director) within r metres of pos, closest first.
+func people_near(pos: Vector3, r: float, except: String) -> Array:
+	var out: Array = []
+	for id in characters:
+		var c: Character = characters[id]
+		if id == except or c.is_down():
+			continue
+		if c.global_position.distance_to(pos) <= r:
+			out.append(c)
+	out.sort_custom(func(a, b): return a.global_position.distance_to(pos) < b.global_position.distance_to(pos))
+	return out
+
+
+func _react(c: Character, emote: String, cat: String, emotion: String, dur: float, look: Vector3) -> void:
+	var b: CoworkerBrain = brains.get(c.id)
+	if b:
+		b.react_to(emote, cat, emotion, dur, look)
+	elif c.is_director() or c.ai_driven:
+		c.do_emote(emote, dur)
+		npc_say(c, barks.pick(cat), emotion)
+	else:
+		c.do_emote(emote, dur)
+
+
+func _flee_from(c: Character, from: Vector3, dist := 6.0) -> void:
+	var b: CoworkerBrain = brains.get(c.id)
+	if b == null or c.seated_on:
+		return
+	var away := c.global_position - from
+	away.y = 0
+	if away.length() < 0.1:
+		away = Vector3(rng.randf_range(-1, 1), 0, rng.randf_range(-1, 1))
+	var dest := c.global_position + away.normalized() * dist
+	get_tree().create_timer(0.6).timeout.connect(func():
+		if is_instance_valid(c) and not c.is_down() and b.state == "react":
+			c.go_to(dest, true))
+
+
+func _use_klaxon(actor: Character) -> void:
+	var pos := actor.global_position + Vector3(0, 1.2, 0)
+	emit_sound(pos, 88.0, "air_horn", actor.id, "", "klaxon")
+	actor.do_emote("laugh", 1.5)
+	var act := record_act(actor, "klaxon", 1, actor.global_position, "", "")
+	var paid := 0
+	for c in people_near(actor.global_position, 7.0, actor.id):
+		var o := c as Character
+		_react(o, "surprised", "klaxon_victim", "surprised", 2.0, pos)
+		npc_reaction(o, "klaxon", {"by": actor.id})
+		var b: CoworkerBrain = brains.get(o.id)
+		if b:
+			b.mem.add_grievance(actor.id, 0.15)
+		if paid < 3 and o.id not in human_ids:
+			paid += 1
+	if paid > 0:
+		prank_reward(actor.id, paid * _reward_of("klaxon"), "klaxon (%d sursaut%s)" % [paid, "s" if paid > 1 else ""])
+	game_event("action", {"action": "use_klaxon", "actor": actor.id, "target": "", "zone": world.zone_at(actor.global_position)})
+	if not act.is_empty():
+		_act_by_ent["klaxon_" + actor.id] = act
+
+
+func _use_stink(actor: Character) -> void:
+	var pos := actor.global_position + actor.forward() * 0.5
+	start_smell(pos, actor.id)
+	emit_sound(pos, 35.0, "squirt", actor.id, "", "smell")
+	record_act(actor, "stink_bomb", 2, actor.global_position, "", "")
+	var n := 0
+	for c in people_near(pos, 8.0, actor.id):
+		var o := c as Character
+		_react(o, "disgust", "stink", "angry", 3.5, pos)
+		_flee_from(o, pos, 7.0)
+		npc_reaction(o, "stink", {"by": actor.id})
+		if o.id not in human_ids and n < 5:
+			n += 1
+	if n > 0:
+		prank_reward(actor.id, n * _reward_of("boule_puante"), "boule puante (%d victime%s)" % [n, "s" if n > 1 else ""])
+	game_event("action", {"action": "use_stink", "actor": actor.id, "target": "", "zone": world.zone_at(pos)})
+
+
+func _water_target(actor: Character) -> Character:
+	var best: Character = null
+	var best_d := 5.0
+	var f := actor.forward()
+	for id in characters:
+		var o: Character = characters[id]
+		if o == actor or o.is_down():
+			continue
+		var to := o.global_position - actor.global_position
+		to.y = 0
+		var d := to.length()
+		if d > 5.0 or d < 0.05:
+			continue
+		if f.dot(to / d) < 0.82:
+			continue
+		if not world.line_clear(actor.eye_position(), o.eye_position(), [actor.get_rid(), o.get_rid()] as Array[RID]):
+			continue
+		if d < best_d:
+			best_d = d
+			best = o
+	return best
+
+
+func _use_water(actor: Character, tgt: Character) -> void:
+	emit_sound(actor.global_position + Vector3(0, 1.2, 0), 30.0, "squirt", actor.id, "")
+	emit_sound(tgt.eye_position(), 40.0, "splash", "", "")
+	_spawn_splash_fx(tgt.eye_position())
+	var act := record_act(actor, "water_gun", 2 if tgt.is_director() else 1, actor.global_position, "", tgt.id)
+	_react(tgt, "angry", "water_hit", "angry", 2.5, actor.eye_position())
+	npc_reaction(tgt, "water_hit", {"by": actor.id})
+	var b: CoworkerBrain = brains.get(tgt.id)
+	if b:
+		b.mem.add_grievance(actor.id, 0.3)
+	if tgt.is_director():
+		change_trust(actor.id, -10.0, "a arrosé le chef")
+		if boss_brain and not act.is_empty():
+			boss_brain._incident(act, actor.global_position)
+	if tgt.id not in human_ids:
+		prank_reward(actor.id, _reward_of("pistolet_eau") + (15 if tgt.is_director() else 0), "%s arrosé(e)" % tgt.display_name())
+	game_event("action", {"action": "use_water", "actor": actor.id, "target": tgt.id, "zone": world.zone_at(tgt.global_position)})
+
+
+func _spawn_splash_fx(pos: Vector3) -> void:
+	if Settings.get_v("reduce_effects"):
+		return
+	var p := CPUParticles3D.new()
+	p.amount = 40
+	p.one_shot = true
+	p.explosiveness = 0.9
+	p.lifetime = 0.8
+	p.spread = 60.0
+	p.initial_velocity_min = 1.0
+	p.initial_velocity_max = 2.5
+	p.gravity = Vector3(0, -9.0, 0)
+	var sm := SphereMesh.new()
+	sm.radius = 0.015
+	sm.height = 0.03
+	var m := StandardMaterial3D.new()
+	m.albedo_color = Color(0.6, 0.8, 1.0, 0.8)
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	sm.material = m
+	p.mesh = sm
+	add_child(p)
+	p.global_position = pos
+	p.emitting = true
+	get_tree().create_timer(1.5).timeout.connect(p.queue_free)
+
+
+## Someone sat on an itch-powdered chair.
+func itch_triggered(sitter: Character, by: String) -> void:
+	emit_sound(sitter.global_position + Vector3(0, 0.6, 0), 30.0, "scratch", "", "")
+	sitter.do_emote("itch", 6.0)
+	if not sitter.is_player:
+		npc_say(sitter, barks.pick("itch"), "panic")
+	npc_reaction(sitter, "itched", {"by": by})
+	var b: CoworkerBrain = brains.get(sitter.id)
+	if b:
+		b.mem.add_grievance(by, 0.2)
+		get_tree().create_timer(2.5).timeout.connect(func():
+			if is_instance_valid(sitter) and sitter.seated_on:
+				sitter.stand_up()
+				b.react_to("itch", "", "panic", 4.0))
+	if sitter.id != by and sitter.id not in human_ids:
+		prank_reward(by, _reward_of("poil_gratter"), "%s se gratte" % sitter.display_name())
+	elif sitter.id == by:
+		notify(sitter, "Tu t'es assis sur ton propre poil à gratter. Bravo.", "warn")
+
+
+## A drawer with a snake-in-a-can is opened.
+func _snake_pop(victim: Character, dev: Device) -> void:
+	dev.state.snake = false
+	var by: String = dev.state.get("snake_by", "")
+	emit_sound(dev.global_position + Vector3(0, 0.5, 0), 70.0, "boing", by, dev.ent_id(), "snake")
+	victim.do_emote("surprised", 2.5)
+	if not victim.is_player:
+		npc_say(victim, barks.pick("snake"), "panic")
+	npc_reaction(victim, "snake", {"by": by})
+	set_device_state(dev)
+	if victim.is_director():
+		if boss_brain:
+			var a := act_for_entity(dev.ent_id())
+			if not a.is_empty():
+				boss_brain._incident(a, dev.global_position)
+	if by != "" and victim.id != by and victim.id not in human_ids:
+		prank_reward(by, _reward_of("serpent") + (20 if victim.is_director() else 0), "serpent en boîte sur %s" % victim.display_name())
+
+
+var _cafard_t := 0.0
+
+## Fake cockroaches on the floor scare the coworkers who see them.
+func _update_cafards(delta: float) -> void:
+	_cafard_t -= delta
+	if _cafard_t > 0.0:
+		return
+	_cafard_t = 0.5
+	for p in world.props_with_tag("cafard"):
+		var pr := p as Prop
+		if not pr.is_available():
+			continue
+		var scared: Dictionary = pr.get_meta("scared", {})
+		if scared.size() >= 4:
+			continue
+		for c in people_near(pr.global_position, 3.0, pr.placed_by):
+			var o := c as Character
+			if scared.has(o.id) or o.id in human_ids:
+				continue
+			if not Perception.sees_point(world, o, pr.global_position + Vector3(0, 0.05, 0), 160.0, 3.5, [pr.get_rid()] as Array[RID]):
+				continue
+			scared[o.id] = true
+			_react(o, "panic", "cafard", "panic", 2.5, pr.global_position)
+			_flee_from(o, pr.global_position, 4.0)
+			emit_sound(o.eye_position(), 55.0, "", o.id, pr.ent_id(), "scream")
+			npc_reaction(o, "cafard", {"by": pr.placed_by})
+			if pr.placed_by != "":
+				prank_reward(pr.placed_by, _reward_of("cafard"), "%s a vu le cafard" % o.display_name())
+			if scared.size() >= 4:
+				break
+		pr.set_meta("scared", scared)
 
 
 func _find_pocketed(actor: Character, item: String) -> Prop:
@@ -1025,6 +1346,9 @@ func _update_smell(delta: float) -> void:
 
 
 func open_container(actor: Character, dev: Device) -> Dictionary:
+	if dev.state.get("snake", false):
+		_snake_pop(actor, dev)
+		return {"ok": true}
 	if dev.state.get("confetti", false):
 		_confetti_burst(actor, dev)
 		return {"ok": true}
@@ -1116,8 +1440,11 @@ func _spawn_confetti_fx(pos: Vector3) -> void:
 
 func boss_opens_drawer(boss: Character) -> void:
 	for e in world.interactables:
-		if e is Device and (e as Device).kind == "boss_drawer" and (e as Device).state.get("confetti", false):
-			_confetti_burst(boss, e)
+		if e is Device and (e as Device).kind == "boss_drawer":
+			if (e as Device).state.get("snake", false):
+				_snake_pop(boss, e)
+			elif (e as Device).state.get("confetti", false):
+				_confetti_burst(boss, e)
 
 
 func reveal_boss_intel(actor: Character) -> void:
@@ -1134,6 +1461,9 @@ func reveal_boss_intel(actor: Character) -> void:
 
 
 func npc_searches_container(c: Character, dev: Device) -> void:
+	if dev.state.get("snake", false):
+		_snake_pop(c, dev)
+		return
 	if dev.state.get("confetti", false):
 		_confetti_burst(c, dev)
 		return
@@ -1182,6 +1512,32 @@ func on_character_fell(c: Character, cause: String, by: String) -> void:
 		var a := record_act(characters[by], "trip", 2 if not c.is_director() else 3, c.global_position, "", c.id)
 		if not a.is_empty() and stats.has(by):
 			pass
+
+
+## A human walked / ran into an NPC.
+func on_bumped(victim: Character, by: Character) -> void:
+	if not is_authority() or not brains.has(victim.id) or not by.id in human_ids:
+		return
+	if now() - float(victim.get_meta("bump_t", -100.0)) < 6.0:
+		return
+	victim.set_meta("bump_t", now())
+	var b: CoworkerBrain = brains[victim.id]
+	b.react_to("angry", "bumped", "angry", 1.6, by.eye_position())
+	b.mem.add_grievance(by.id, 0.05)
+	relations.change(victim.id, by.id, -0.03)
+	npc_reaction(victim, "bumped", {"by": by.id})
+
+
+## A thrown object landed near people: they flinch and complain.
+func on_throw_landed(p: Prop, by: String) -> void:
+	if not is_authority():
+		return
+	for c in people_near(p.global_position, 2.2, by):
+		var o := c as Character
+		if brains.has(o.id) and now() - float(o.get_meta("throw_t", -100.0)) > 8.0:
+			o.set_meta("throw_t", now())
+			brains[o.id].react_to("surprised", "throw_near", "angry", 1.8, p.global_position)
+			brains[o.id].mem.add_grievance(by, 0.1)
 
 
 func npc_reaction(c: Character, reaction: String, d: Dictionary) -> void:
@@ -1429,6 +1785,8 @@ func social_actions(actor: Character, target: Character) -> Array:
 		if actor.is_director():
 			return out
 		out.append({"id": "flatter", "label": "Faire du lèche-bottes", "time": 2.0})
+		if actor.has_item("cafe"):
+			out.append({"id": "boss_coffee", "label": "Offrir un café au chef", "time": 0.0})
 		out.append({"id": "denounce", "label": "Dénoncer un collègue…", "time": 0.0, "ui": "denounce"})
 		return out
 	if actor.is_director():
@@ -1552,10 +1910,23 @@ func perform_social(actor: Character, target: Character, act: String, params: Di
 				_chat_t[key2] = now()
 				boss_brain.sus.add(actor.id, -6.0, "flatter", -1, "", now())
 				npc_say(target, "Hmm. Bon travail… je suppose.", "neutral")
+				change_trust(actor.id, 5.0, "lèche-bottes")
 			else:
 				npc_say(target, "Vous n'avez pas du travail, vous ?", "suspicious")
 		"denounce":
 			return denounce(actor, String(params.get("accused", "")), int(params.get("act_id", -1)))
+		"boss_coffee":
+			if not actor.consume_item("cafe"):
+				return {"ok": false, "msg": "Il te faut un café (machine de la salle de pause)."}
+			target.do_emote("drink", 3.0)
+			if actor.get_meta("salted_coffee", false):
+				actor.set_meta("salted_coffee", false)
+				npc_say(target, "POUAH ! IL EST SALÉ !", "angry")
+				change_trust(actor.id, -20.0, "café salé au chef")
+				npc_reaction(target, "drank_salted", {"by": actor.id})
+			else:
+				npc_say(target, "Oh… merci. Excellent café.", "happy")
+				change_trust(actor.id, 8.0, "café offert")
 		_:
 			return {"ok": false, "msg": "Action inconnue."}
 	return {"ok": true}
@@ -1577,6 +1948,8 @@ func denounce(actor: Character, accused: String, act_id: int) -> Dictionary:
 	if mode == "solo":
 		SaveGame.add_stat("denunciations")
 	_add_testimony(int(act.id), actor.id, accused, "truth" if truthful else "lie")
+	if truthful:
+		_truthful_denounce[accused] = actor.id
 	game_event("denounce", {"actor": actor.id, "accused": accused, "act_id": act.id, "truthful": truthful})
 	npc_say(actor, barks.pick("accuse", {"name": char_name(accused)}), "neutral")
 	if boss_brain:
@@ -1693,7 +2066,7 @@ func _resolve_interrogation(choice: String, params: Dictionary) -> void:
 		"confess":
 			outcome = "sanctioned"
 		"deny":
-			var p_clear := (1.0 - strength) * 0.85 + (0.25 if not guilty else 0.0)
+			var p_clear := (1.0 - strength) * 0.85 + (0.25 if not guilty else 0.0) + (trust_of(iv.who) - 50.0) / 250.0
 			outcome = "sanctioned" if strength >= 0.95 or rng.randf() > p_clear else "cleared"
 		"excuse":
 			var plaus := 0.5
@@ -1705,7 +2078,7 @@ func _resolve_interrogation(choice: String, params: Dictionary) -> void:
 				plaus -= 0.35
 			if who:
 				plaus -= who.visible_contraband() * 0.5
-			var p := clampf(plaus, 0.05, 0.95) * (1.0 - strength * 0.8) + (0.2 if not guilty else 0.0)
+			var p := clampf(plaus, 0.05, 0.95) * (1.0 - strength * 0.8) + (0.2 if not guilty else 0.0) + (trust_of(iv.who) - 50.0) / 250.0
 			outcome = "cleared" if rng.randf() < p and strength < 0.95 else "sanctioned"
 		"accuse":
 			var accused: String = params.get("accused", "")
@@ -1779,6 +2152,11 @@ func _sanction(who: Character, act: Dictionary, guilty: bool) -> Dictionary:
 			for t in testimonies.get(int(act.get("id", -1)), []):
 				b.mem.add_grievance(String(t.witness), 0.8)
 	game_event("sanction", {"target": who.id, "act_kind": act.get("kind", ""), "correct": guilty})
+	change_trust(who.id, -12.0, "sanction")
+	if guilty and _truthful_denounce.has(who.id):
+		change_trust(_truthful_denounce[who.id], 6.0, "dénonciation utile")
+		economy.add(_truthful_denounce[who.id], 15)
+		_truthful_denounce.erase(who.id)
 	if who == player:
 		SoundFx.ui("warning_sting")
 	if who.id in human_ids and int(warnings[who.id]) >= 3 and mode == "solo":
@@ -1797,14 +2175,17 @@ func inspect_desk(boss: Character, desk: Dictionary, brain: DirectorBrain) -> vo
 	if oc.global_position.distance_to(desk.seat) > 3.0 and not day.meeting_active:
 		brain.sus.add(owner, 6.0, "absent", -1, "boss", t)
 		npc_say(boss, "Et %s, il est où ?" % oc.nick, "suspicious")
+		change_trust(owner, -4.0, "absent à l'inspection")
 	elif oc.get_meta("slacking", false):
 		var a := record_act(oc, "slacking", 1, oc.global_position, "", "")
 		brain.sus.set_confirmed(owner, int(a.id), t)
 	elif oc.pretending_until > t and t - oc.last_work_time > 60.0 and float(brain.prof.get("inspect_bias", 0.5)) > 0.4:
 		brain.sus.add(owner, 12.0, "pretend", -1, "boss", t)
 		npc_say(boss, "Votre écran affiche la même chose depuis une heure…", "suspicious")
+		change_trust(owner, -6.0, "fait semblant de travailler")
 	else:
 		npc_say(boss, "Bien. Continuez.", "neutral")
+		change_trust(owner, 3.0, "inspection réussie")
 	# drawers: contraband is found (even if someone else planted it!)
 	var dr: Device = world.ent(desk.drawer_id)
 	if dr and not dr.contents.is_empty() and rng.randf() < 0.5 + float(brain.prof.get("inspect_bias", 0.5)) * 0.5:
@@ -1942,12 +2323,13 @@ func _end_day_solo(fired: bool) -> void:
 		if ms.is_done(id):
 			done_main += 1
 	var prod := player.productivity
-	var salary := 0 if fired else int(25 + prod * 0.5)
+	var salary := 0 if fired else int(25 + prod * 0.5 + trust_of("player") / 5.0)
 	economy.add("player", salary)
 	economy.return_pocket("player", player)
 	var won := not fired and done_main >= 2 and prod >= 35.0 and int(warnings.get("player", 0)) < 3
 	var d := SaveGame.data
 	d.stats.days_played = int(d.stats.days_played) + 1
+	d["boss_trust"] = trust_of("player")
 	if won:
 		d.stats.days_won = int(d.stats.days_won) + 1
 		d.tier_unlocked = mini(3, int(d.tier_unlocked) + (1 if int(d.stats.days_won) % 2 == 1 else 0))
@@ -1970,7 +2352,7 @@ func _end_day_solo(fired: bool) -> void:
 		"side_done": ms.side.filter(func(x): return ms.is_done(x)).size(), "productivity": int(prod), "salary": salary,
 		"earned": int(stats.player.earned), "fines": int(fines.get("player", 0)), "warnings": int(warnings.get("player", 0)),
 		"pranks": int(stats.player.pranks), "caught": int(stats.player.caught), "falls": int(stats.player.falls_caused),
-		"money": economy.money("player"), "score": score, "profile": Data.director_profiles[profile].label,
+		"money": economy.money("player"), "score": score, "profile": Data.director_profiles[profile].label, "trust": int(trust_of("player")),
 		"missions": ms.active.map(func(x): return {"title": ms.title(x), "done": ms.is_done(x)}),
 	}
 	day_over.emit(results)

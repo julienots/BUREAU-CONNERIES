@@ -19,11 +19,13 @@ Les binaires se reconstruisent avec les commandes de la section « Construire »
 **Téléphone (paysage)** — pouce gauche : joystick qui apparaît sous le doigt (pousser jusqu'au bord = courir) ·
 pouce droit : glisser pour tourner la caméra (elle suit aussi automatiquement) · gros bouton **jaune** = l'action
 affichée dessus (« Prendre », « S'asseoir »…), ◀ ▶ pour changer d'action, ou toucher directement une ligne de la liste ·
-Lâcher / Lancer / Se lever apparaissent seulement quand c'est utile · Accroupi (bascule) · Objectifs et Pause en haut.
+Lâcher / Lancer / Se lever apparaissent seulement quand c'est utile · Accroupi (bascule) · en haut : bandeau
+**Mission** (touche-le pour la liste), **II** = pause, **BOUTIQUE** (jaune). Plusieurs doigts en même temps fonctionnent
+(joystick + bouton), et un objet traîné loin se reprend (« Traîner », « Redresser la chaise » si elle est renversée).
 
 **PC** — ZQSD/WASD (touches physiques, AZERTY ok) · souris = caméra · E ou clic = agir · F = action secondaire ·
 Tab / molette = action suivante · Maj = courir · Ctrl = s'accroupir · G = lâcher · clic droit = lancer ·
-1-4 = objets · R = déclencher le buzzer · O = objectifs · Échap = pause. Tout est reconfigurable (Paramètres).
+1-4 = objets · R = déclencher le buzzer · O = objectifs · B = boutique · Échap = pause. Tout est reconfigurable (Paramètres).
 Manette : stick gauche/droit, A agir, X secondaire, B lâcher.
 
 ## Ce qui est implémenté (et vérifié)
@@ -37,7 +39,10 @@ Manette : stick gauche/droit, A agir, X secondaire, B lâcher.
 | Directeur IA : vision (cône + raycasts + attention progressive), audition atténuée par les murs, mémoire bornée et alibis, enquêtes, interrogatoires de témoins, inspections, 5 profils, pièges (manipulateur) | ✅ | tests unitaires + e2e (pris sur le fait → interrogatoire → sanction) |
 | Témoignages sincères / partiels / mensongers, contradictions, fausses accusations réfutées par alibi | ✅ | tests unitaires |
 | 30 missions + 3 défis (règles réelles côté autorité) | ✅ | contrôle statique des 30 ; 5 réussies en e2e |
-| Boutique (12 objets, prix, niveaux, limites), économie, salaire, amendes | ✅ | e2e |
+| Deux boutiques — **Farces & Attrapes** (10 farces : klaxon, poil à gratter, faux cafard, boule puante, serpent en boîte, pistolet à eau, coussin péteur…) et **SuperAmazone** (gadgets) — accessibles depuis le menu principal et en jeu (bouton BOUTIQUE) ; chaque farce réussie rapporte une **prime** | ✅ | `farce_test` (22 vérifs) |
+| Jauge **« Le chef »** (confiance du directeur 0-100 : monte si tu travailles, flattes, offres un café, dénonces à raison ; baisse si tu es pris, absent en réunion, suspect…) qui change la vitesse des soupçons, les interrogatoires et le salaire | ✅ | unitaires + e2e |
+| IA réactives : « ! » / « ? » au-dessus des collègues qui voient/entendent, râlent si on les bouscule, si on prend leurs affaires, si on s'assoit sur leur chaise, si on court ou lance des objets près d'eux ; téléphones qui sonnent, clavier qui crépite | ✅ | simulation + tests |
+| Économie, salaire, amendes, stock (poches pleines → stock) | ✅ | e2e |
 | Travail : 3 mini-tâches (mails, tampons, saisie), productivité, « faire semblant » détectable | ✅ | |
 | 13 événements imprévus équilibrés | ✅ | tests unitaires |
 | Sauvegarde locale versionnée (+ migration), paramètres, touches | ✅ | e2e |
@@ -71,8 +76,10 @@ Dans le jeu : Jouer en ligne → adresse du serveur → créer / rejoindre (code
 
 ```
 tools/check.sh                                                   # compile tous les scripts
-godot --headless --path . res://tests/run_tests.tscn             # 290 tests unitaires/statiques
+godot --headless --path . res://tests/run_tests.tscn             # 296 tests unitaires/statiques
 godot --headless --path . res://tests/player_flow.tscn           # 26 vérifications de bout en bout
+godot --headless --path . res://tests/farce_test.tscn            # les 6 nouvelles farces + primes
+godot --headless --path . res://tests/touch_test.tscn            # vrais évènements tactiles multi-doigts
 godot --headless --path . res://tests/sim_day.tscn -- --secs=300 --scale=4   # journée simulée
 tools/mp_test.sh 170                                             # serveur + 3 clients bots
 tools/master_test.sh                                             # serveur maître

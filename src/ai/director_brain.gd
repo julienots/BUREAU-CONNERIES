@@ -165,6 +165,7 @@ func _caught(e: Character, bad: float) -> void:
 			sus.set_confirmed(e.id, int(act.id), now)
 			_bark("boss_caught", "angry")
 			c.do_emote("angry", 2.0)
+			s.change_trust(e.id, -15.0, "pris sur le fait")
 			s.notify_caught(e, "Le directeur t'a vu faire !")
 			_go_confront(e.id, int(act.id), true)
 			return
@@ -182,6 +183,7 @@ func _caught(e: Character, bad: float) -> void:
 		amount += 15.0
 	sus.add(e.id, amount, "seen", act_id, "boss", now)
 	s.on_suspicion_changed(e.id)
+	s.change_trust(e.id, -4.0 - (5.0 if z == "boss_office" else 0.0), "comportement louche")
 	c.look_at_point(e.eye_position())
 	c.do_emote("suspicious", 2.0)
 	_bark("boss_suspicious", "suspicious")
@@ -330,6 +332,7 @@ func on_witness(act: Dictionary, info: Dictionary) -> void:
 		sus.add(info.id, 25.0 * float(info.conf) + 8.0 * int(act.sev), "seen", int(act.id), "boss", now)
 		s.director_note("Tu as vu %s : %s" % [s.char_name(info.id), s.act_description(act).replace("On vous soupçonne de : ", "")])
 		return
+	s.change_trust(info.id, -8.0, "bêtise repérée")
 	if float(info.conf) > 0.6:
 		sus.set_confirmed(info.id, int(act.id), now)
 		_bark("boss_caught", "angry")
@@ -356,6 +359,7 @@ func on_testimony(witness: String, accused: String, act_id: int, kind: String, n
 			sus.adjust_trust(witness, -0.25)
 			if s.is_employee(witness):
 				sus.add(witness, 12.0, "false_accusation", act_id, "boss", now)
+				s.change_trust(witness, -10.0, "fausse accusation")
 				s.on_suspicion_changed(witness)
 			s.game_event("testimony_refuted", {"witness": witness, "accused": accused, "act_id": act_id})
 			return
@@ -707,6 +711,9 @@ func _st_meeting() -> void:
 					if s.world.zone_at(ec.global_position) != "meeting":
 						sus.add(ec.id, 6.0, "absent_meeting", -1, "boss", s.now())
 						s.on_suspicion_changed(ec.id)
+						s.change_trust(ec.id, -6.0, "absent en réunion")
+					else:
+						s.change_trust(ec.id, 4.0, "présent en réunion")
 
 
 func _st_spot(kind: String, emote: String, cat: String) -> void:

@@ -35,6 +35,7 @@ func default_data() -> Dictionary:
 		"missions_done": [],     # ids completed at least once
 		"affinity": {},          # npc_id -> affinity with the player, persists between days
 		"rematch": false,        # previous day failed -> revenge challenge
+		"boss_trust": 50.0,
 		"profile_seen": [],
 	}
 

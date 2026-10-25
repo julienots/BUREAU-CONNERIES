@@ -189,6 +189,10 @@ func _on_body_entered(body: Node) -> void:
 	if speed < 0.9:
 		return
 	var now := Game.time()
+	if has_meta("thrown_t") and Game.session and Game.session.is_authority():
+		if now - float(get_meta("thrown_t")) < 3.0:
+			Game.session.on_throw_landed(self, String(get_meta("thrown_by", "")))
+		remove_meta("thrown_t")
 	if body is Character and speed > 2.6 and mass * speed > 12.0:
 		(body as Character).take_hit(_prev_vel * mass * 0.08, self)
 	if now - _last_sound_t < 0.12:
@@ -250,10 +254,18 @@ func get_actions(actor: Node) -> Array:
 	if not is_available() or held_by != null:
 		return out
 	if seat_height > 0.0:
+		if global_basis.y.dot(Vector3.UP) < 0.8:
+			# tipped over: put it back on its wheels first (or drag it as it is)
+			out.append({"id": "straighten", "label": "Redresser la chaise", "time": 0.6})
+			out.append({"id": "hold", "label": "Traîner", "time": 0.3})
+			out.append({"id": "push", "label": "Pousser", "time": 0.0})
+			return out
 		if occupant == "":
 			out.append({"id": "sit", "label": "S'asseoir", "time": 0.0})
 			if owner_id != "" and actor.char_id() != owner_id and not seat_low:
 				out.append({"id": "lower_seat", "label": "Baisser le siège", "time": 2.5, "noise": 12.0, "sus": 0.7, "prank": true, "act": "lower_seat", "sev": 1})
+			if not has_meta("itch_by") and actor.has_method("has_item") and actor.has_item("poil_gratter"):
+				out.append({"id": "itch_powder", "label": "Saupoudrer de poil à gratter", "time": 1.5, "noise": 4.0, "sus": 0.8, "prank": true, "act": "itch_trap", "sev": 2})
 			if cushion_id == "" and actor.has_method("has_item") and actor.has_item("coussin_peteur"):
 				out.append({"id": "place_cushion", "label": "Poser le coussin péteur", "time": 1.5, "noise": 6.0, "sus": 0.9, "prank": true, "act": "cushion", "sev": 3})
 		out.append({"id": "push", "label": "Pousser", "time": 0.0, "noise": 0.0})
@@ -316,6 +328,15 @@ func perform(actor: Node, action: String, params: Dictionary) -> Dictionary:
 			cushion_id = cush.ent_id()
 		"drink":
 			sess.drink_coffee(actor, self)
+		"itch_powder":
+			if not actor.consume_item("poil_gratter"):
+				return {"ok": false, "msg": "Tu n'as pas de poil à gratter."}
+			set_meta("itch_by", actor.char_id())
+		"straighten":
+			sleeping = false
+			global_transform = Transform3D(Basis(Vector3.UP, global_rotation.y), global_position + Vector3(0, 0.15, 0))
+			linear_velocity = Vector3.ZERO
+			angular_velocity = Vector3.ZERO
 	return {"ok": true}
 
 
@@ -325,6 +346,10 @@ func on_sat(by: Node) -> void:
 	freeze = true
 	if seat_low and Game.session and Game.session.is_authority():
 		Game.session.low_seat_triggered(by, self)
+	if has_meta("itch_by") and Game.session and Game.session.is_authority():
+		var who: String = get_meta("itch_by")
+		remove_meta("itch_by")
+		Game.session.itch_triggered(by, who)
 	if cushion_id != "" and Game.session and Game.session.is_authority():
 		var cush := Game.session.world.ent(cushion_id) as Prop
 		cushion_id = ""

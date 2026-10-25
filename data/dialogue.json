@@ -1,69 +1,438 @@
 {
   "lines": {
-    "greet": ["Salut {name} !", "Bonjour bonjour.", "Ça va {name} ?", "Encore lundi, hein ?", "Coucou !", "Yo."],
-    "work": ["Bon… ce tableur ne va pas se remplir tout seul.", "Qui a écrit cette formule ?!", "Encore 847 mails.", "Concentration…", "Pourquoi c'est en Comic Sans ?", "J'adore les réunions sur les réunions."],
-    "coffee": ["Café. Maintenant.", "Troisième café, je ne compte plus.", "Cette machine me déteste.", "Ah, la meilleure réunion de la journée."],
-    "chat": ["Tu as vu le match hier ?", "Il paraît que la cantine change de menu.", "Mon chat a encore vomi sur mon clavier.", "Vivement vendredi.", "J'ai rêvé de tableurs cette nuit.", "Tu crois qu'on aura une prime ?", "Le chef a encore changé de cravate.", "J'ai trouvé un trombone en forme de cœur."],
-    "react_noise": ["C'était quoi ça ?", "Hein ?!", "Quelqu'un a entendu ?", "Mais qu'est-ce que…", "Encore l'imprimante ?"],
-    "react_fall_self": ["Aïe aïe aïe !", "Personne n'a rien vu !", "Mon dos…", "C'est le sol qui a bougé !", "Je l'ai fait exprès."],
-    "react_fall_other": ["Ha ha ha ! Pardon, ha ha !", "Ça va ? … Ha ha !", "Oh là là !", "Joli plongeon !", "On a filmé ?"],
-    "react_stumble": ["Oups !", "Wo-wo-wo !", "Qui a mis ça là ?!", "Presque."],
-    "victim_chair": ["Où est ma chaise ?!", "Quelqu'un a vu ma chaise ?", "Ma chaise a fugué.", "Très drôle. TRÈS drôle."],
-    "victim_wallpaper": ["C'est quoi ce fond d'écran ?!", "Qui a touché à mon ordi ?!", "… Une patate. Sérieusement.", "Ha. Ha. Ha."],
-    "victim_postits": ["Mon écran ! Il est jaune !", "Combien de post-it il y a là ?!", "Je vais retrouver le coupable."],
-    "victim_lowseat": ["Waaah ! Mon siège !", "Je suis devenu tout petit !", "Qui a baissé mon siège ?!"],
-    "victim_salt": ["Pouah ! C'est salé !", "Beurk ! Qui a fait ça ?!", "Ce café est un crime."],
-    "victim_fart": ["… Ce n'était pas moi !", "Oh non. Oh non non non.", "C'est le fauteuil !"],
-    "witness_fart": ["Ha ha ha !", "Oh la honte !", "Pfff ha ha !", "Je n'ai rien entendu… ha ha !"],
-    "smell_fish": ["Ça pue le poisson !", "Qui a fait chauffer ça ?!", "Mes yeux ! Mes yeux !", "Ouvrez les fenêtres !"],
-    "lights_off": ["Hé ! La lumière !", "Qui a éteint ?!", "Panne de courant ?"],
-    "radio": ["C'est quoi cette musique ?", "Ah j'adore ce morceau !", "Baissez le son !"],
-    "printer_spam": ["Pourquoi l'imprimante imprime 50 pages ?!", "Qui imprime le dictionnaire ?", "Ça n'arrête pas !"],
-    "confetti": ["Des confettis ?!", "C'est mon anniversaire ?", "Qu'est-ce que… !"],
-    "witness_prank": ["Oh… j'ai rien vu.", "Hé hé…", "Mmh, intéressant.", "Je note."],
-    "gossip": ["Tu sais pas la dernière ?", "Je te dis ça, mais tu ne le répètes pas…", "Il paraît que {name} a fait un truc…", "Psst. Viens voir."],
-    "rumor_tell": ["Il paraît que… {rumor}", "On m'a dit que {rumor}", "Tu savais ? {rumor}"],
-    "report_go": ["Je vais en parler au chef.", "Il faut que le chef sache.", "Ça ne va pas se passer comme ça."],
-    "report_tell": ["Chef, j'ai vu {name} faire quelque chose de louche.", "Monsieur Lebrun ? C'est {name}. Je l'ai vu.", "Je ne voudrais pas cafter, mais… {name}."],
-    "testimony_truth": ["C'était {name}, je l'ai vu.", "{name}. Sans hésiter.", "J'ai vu {name} faire ça."],
-    "testimony_partial": ["Quelqu'un avec {desc}… je n'ai pas bien vu.", "Je crois que c'était {desc}.", "Une silhouette avec {desc}."],
-    "testimony_lie": ["C'était {name}, évidemment.", "Demandez donc à {name}…", "Je parierais sur {name}."],
-    "testimony_nothing": ["Je n'ai rien vu, chef.", "Moi ? Je travaillais.", "Aucune idée, désolé.", "Je… euh… non."],
-    "testimony_protect": ["Rien vu, rien entendu.", "Personne, chef. Personne.", "Vous devez vous tromper."],
-    "accomplice_yes": ["Compte sur moi.", "Ha ha, j'en suis !", "OK, mais si on se fait prendre, je ne te connais pas."],
-    "accomplice_no": ["Hors de question.", "Tu veux ma mort ?", "Pas aujourd'hui."],
-    "bribe_yes": ["Bon… j'ai rien vu.", "Merci. Bouche cousue.", "C'est oublié."],
-    "bribe_no": ["Tu crois que je suis à vendre ?", "Non. Je vais quand même le dire."],
-    "coffee_yes": ["Une pause ? Allez !", "Excellent idée.", "J'arrive !"],
-    "coffee_no": ["Pas le temps.", "J'ai un dossier urgent.", "Plus tard peut-être."],
-    "lie_believed": ["Ah bon ? Merci de me prévenir !", "Sérieux ? D'accord !", "Oh, j'aurais pu rater ça."],
-    "lie_doubted": ["Hmm… tu es sûr ?", "Je vais vérifier.", "Je ne te crois pas trop."],
-    "diversion": ["OH ! Regardez là-bas !", "CHEF ! Il y a un problème avec l'imprimante !", "Aaaah une araignée !", "Monsieur Lebrun, vous avez une minute ?"],
-    "panic": ["Le chef arrive !", "Vite, vite !", "Faites semblant de travailler !"],
-    "meeting": ["Synergie… KPI… agilité…", "Je propose qu'on fasse une réunion pour en parler.", "Quelqu'un a pris des notes ?", "Hmm hmm. Tout à fait."],
-    "croissants": ["Des croissants !!", "Je prends le pain au chocolat !", "C'est la fête !"],
-    "slack": ["Juste une petite partie…", "Personne ne regarde…", "Zzz…", "Pause méritée."],
-    "boss_patrol": ["Hmm.", "Tout le monde travaille, j'espère.", "Productivité, productivité…", "Je vous ai à l'œil.", "Bien, bien, bien."],
-    "boss_hear": ["Qu'est-ce que c'était ?", "Quel est ce bruit ?!", "Qui fait ce vacarme ?", "Hmm ? Je vais voir ça."],
-    "boss_investigate": ["Qui a fait ça ?", "Quelqu'un a une explication ?", "Je veux des noms.", "Personne n'a rien vu, bien sûr…"],
-    "boss_suspicious": ["Vous, là. Je vous surveille.", "Hmm… curieux.", "Qu'est-ce que vous faites ici ?", "Tiens tiens tiens."],
-    "boss_caught": ["JE VOUS AI VU !", "Pris la main dans le sac !", "Qu'est-ce que vous fabriquez ?!", "Dans mon bureau. Maintenant."],
-    "boss_angry": ["C'est inadmissible !", "Ce n'est pas une cour de récréation ici !", "Je vais finir par sévir !"],
-    "boss_sanction": ["Avertissement. Ne recommencez pas.", "Ce sera retenu sur votre salaire.", "Je confisque ça.", "Dernier avertissement !"],
-    "boss_clear": ["Bon. Je vous crois… pour cette fois.", "Retournez travailler.", "Mmh. Disparaissez."],
-    "boss_meeting": ["Bien, commençons. Synergie !", "Ordre du jour : les ordres du jour.", "Je veux des résultats !", "Des questions ? Non ? Parfait."],
-    "boss_phone": ["Oui ? … Oui. … Non. … OUI.", "Je vous écoute, Monsieur le Président.", "Ha ha ha, bien sûr !", "Je vous rappelle. Non, attendez !"],
-    "boss_inspection": ["Inspection ! Tout le monde à son poste !", "Voyons voir ce bureau…", "Montrez-moi votre écran.", "Ce tiroir, il contient quoi ?"],
-    "boss_anomaly": ["Pourquoi cette chaise est là ?", "Qui a déplacé ça ?", "Quelque chose cloche ici.", "C'est quoi ce désordre ?"],
-    "boss_fart": ["… QUI A MIS ÇA LÀ ?!", "C'EST UNE BLAGUE ?!", "Je veux le coupable dans mon bureau !"],
-    "boss_slip": ["WOAAAH !", "MON DOS !", "QUI A LAISSÉ ÇA PAR TERRE ?!"],
-    "boss_caricature": ["C'EST MOI, ÇA ?!", "Très drôle. Le coupable va moins rire.", "Effacez-moi ça immédiatement !"],
-    "boss_mug": ["Où est mon mug ?!", "Mon mug « Meilleur Chef » a disparu !"],
-    "boss_distracted": ["Oh, des croissants…", "Où en étais-je ?", "Ah oui, mon rendez-vous !"],
-    "interrogate_open": ["J'ai quelques questions pour vous.", "Asseyez-vous. Enfin, restez debout.", "Expliquez-moi ce qui s'est passé."],
-    "deny": ["Ce n'était pas moi !", "Moi ? Jamais !", "Je travaillais !"],
-    "excuse": ["Je cherchais mon stylo.", "J'allais à l'imprimante.", "On m'a demandé de déplacer ça.", "Je vérifiais un truc pour vous !"],
-    "confess": ["… D'accord, c'était moi.", "Je plaide coupable.", "C'était pour l'esprit d'équipe !"],
-    "accuse": ["C'est {name} ! Je l'ai vu !", "Demandez plutôt à {name}.", "{name} rôdait par là."]
+    "greet": [
+      "Salut {name} !",
+      "Bonjour bonjour.",
+      "Ça va {name} ?",
+      "Encore lundi, hein ?",
+      "Coucou !",
+      "Yo."
+    ],
+    "work": [
+      "Bon… ce tableur ne va pas se remplir tout seul.",
+      "Qui a écrit cette formule ?!",
+      "Encore 847 mails.",
+      "Concentration…",
+      "Pourquoi c'est en Comic Sans ?",
+      "J'adore les réunions sur les réunions."
+    ],
+    "coffee": [
+      "Café. Maintenant.",
+      "Troisième café, je ne compte plus.",
+      "Cette machine me déteste.",
+      "Ah, la meilleure réunion de la journée."
+    ],
+    "chat": [
+      "Tu as vu le match hier ?",
+      "Il paraît que la cantine change de menu.",
+      "Mon chat a encore vomi sur mon clavier.",
+      "Vivement vendredi.",
+      "J'ai rêvé de tableurs cette nuit.",
+      "Tu crois qu'on aura une prime ?",
+      "Le chef a encore changé de cravate.",
+      "J'ai trouvé un trombone en forme de cœur."
+    ],
+    "react_noise": [
+      "C'était quoi ça ?",
+      "Hein ?!",
+      "Quelqu'un a entendu ?",
+      "Mais qu'est-ce que…",
+      "Encore l'imprimante ?"
+    ],
+    "react_fall_self": [
+      "Aïe aïe aïe !",
+      "Personne n'a rien vu !",
+      "Mon dos…",
+      "C'est le sol qui a bougé !",
+      "Je l'ai fait exprès."
+    ],
+    "react_fall_other": [
+      "Ha ha ha ! Pardon, ha ha !",
+      "Ça va ? … Ha ha !",
+      "Oh là là !",
+      "Joli plongeon !",
+      "On a filmé ?"
+    ],
+    "react_stumble": [
+      "Oups !",
+      "Wo-wo-wo !",
+      "Qui a mis ça là ?!",
+      "Presque."
+    ],
+    "victim_chair": [
+      "Où est ma chaise ?!",
+      "Quelqu'un a vu ma chaise ?",
+      "Ma chaise a fugué.",
+      "Très drôle. TRÈS drôle."
+    ],
+    "victim_wallpaper": [
+      "C'est quoi ce fond d'écran ?!",
+      "Qui a touché à mon ordi ?!",
+      "… Une patate. Sérieusement.",
+      "Ha. Ha. Ha."
+    ],
+    "victim_postits": [
+      "Mon écran ! Il est jaune !",
+      "Combien de post-it il y a là ?!",
+      "Je vais retrouver le coupable."
+    ],
+    "victim_lowseat": [
+      "Waaah ! Mon siège !",
+      "Je suis devenu tout petit !",
+      "Qui a baissé mon siège ?!"
+    ],
+    "victim_salt": [
+      "Pouah ! C'est salé !",
+      "Beurk ! Qui a fait ça ?!",
+      "Ce café est un crime."
+    ],
+    "victim_fart": [
+      "… Ce n'était pas moi !",
+      "Oh non. Oh non non non.",
+      "C'est le fauteuil !"
+    ],
+    "witness_fart": [
+      "Ha ha ha !",
+      "Oh la honte !",
+      "Pfff ha ha !",
+      "Je n'ai rien entendu… ha ha !"
+    ],
+    "smell_fish": [
+      "Ça pue le poisson !",
+      "Qui a fait chauffer ça ?!",
+      "Mes yeux ! Mes yeux !",
+      "Ouvrez les fenêtres !"
+    ],
+    "lights_off": [
+      "Hé ! La lumière !",
+      "Qui a éteint ?!",
+      "Panne de courant ?"
+    ],
+    "radio": [
+      "C'est quoi cette musique ?",
+      "Ah j'adore ce morceau !",
+      "Baissez le son !"
+    ],
+    "printer_spam": [
+      "Pourquoi l'imprimante imprime 50 pages ?!",
+      "Qui imprime le dictionnaire ?",
+      "Ça n'arrête pas !"
+    ],
+    "confetti": [
+      "Des confettis ?!",
+      "C'est mon anniversaire ?",
+      "Qu'est-ce que… !"
+    ],
+    "witness_prank": [
+      "Oh… j'ai rien vu.",
+      "Hé hé…",
+      "Mmh, intéressant.",
+      "Je note."
+    ],
+    "gossip": [
+      "Tu sais pas la dernière ?",
+      "Je te dis ça, mais tu ne le répètes pas…",
+      "Il paraît que {name} a fait un truc…",
+      "Psst. Viens voir."
+    ],
+    "rumor_tell": [
+      "Il paraît que… {rumor}",
+      "On m'a dit que {rumor}",
+      "Tu savais ? {rumor}"
+    ],
+    "report_go": [
+      "Je vais en parler au chef.",
+      "Il faut que le chef sache.",
+      "Ça ne va pas se passer comme ça."
+    ],
+    "report_tell": [
+      "Chef, j'ai vu {name} faire quelque chose de louche.",
+      "Monsieur Lebrun ? C'est {name}. Je l'ai vu.",
+      "Je ne voudrais pas cafter, mais… {name}."
+    ],
+    "testimony_truth": [
+      "C'était {name}, je l'ai vu.",
+      "{name}. Sans hésiter.",
+      "J'ai vu {name} faire ça."
+    ],
+    "testimony_partial": [
+      "Quelqu'un avec {desc}… je n'ai pas bien vu.",
+      "Je crois que c'était {desc}.",
+      "Une silhouette avec {desc}."
+    ],
+    "testimony_lie": [
+      "C'était {name}, évidemment.",
+      "Demandez donc à {name}…",
+      "Je parierais sur {name}."
+    ],
+    "testimony_nothing": [
+      "Je n'ai rien vu, chef.",
+      "Moi ? Je travaillais.",
+      "Aucune idée, désolé.",
+      "Je… euh… non."
+    ],
+    "testimony_protect": [
+      "Rien vu, rien entendu.",
+      "Personne, chef. Personne.",
+      "Vous devez vous tromper."
+    ],
+    "accomplice_yes": [
+      "Compte sur moi.",
+      "Ha ha, j'en suis !",
+      "OK, mais si on se fait prendre, je ne te connais pas."
+    ],
+    "accomplice_no": [
+      "Hors de question.",
+      "Tu veux ma mort ?",
+      "Pas aujourd'hui."
+    ],
+    "bribe_yes": [
+      "Bon… j'ai rien vu.",
+      "Merci. Bouche cousue.",
+      "C'est oublié."
+    ],
+    "bribe_no": [
+      "Tu crois que je suis à vendre ?",
+      "Non. Je vais quand même le dire."
+    ],
+    "coffee_yes": [
+      "Une pause ? Allez !",
+      "Excellent idée.",
+      "J'arrive !"
+    ],
+    "coffee_no": [
+      "Pas le temps.",
+      "J'ai un dossier urgent.",
+      "Plus tard peut-être."
+    ],
+    "lie_believed": [
+      "Ah bon ? Merci de me prévenir !",
+      "Sérieux ? D'accord !",
+      "Oh, j'aurais pu rater ça."
+    ],
+    "lie_doubted": [
+      "Hmm… tu es sûr ?",
+      "Je vais vérifier.",
+      "Je ne te crois pas trop."
+    ],
+    "diversion": [
+      "OH ! Regardez là-bas !",
+      "CHEF ! Il y a un problème avec l'imprimante !",
+      "Aaaah une araignée !",
+      "Monsieur Lebrun, vous avez une minute ?"
+    ],
+    "panic": [
+      "Le chef arrive !",
+      "Vite, vite !",
+      "Faites semblant de travailler !"
+    ],
+    "meeting": [
+      "Synergie… KPI… agilité…",
+      "Je propose qu'on fasse une réunion pour en parler.",
+      "Quelqu'un a pris des notes ?",
+      "Hmm hmm. Tout à fait."
+    ],
+    "croissants": [
+      "Des croissants !!",
+      "Je prends le pain au chocolat !",
+      "C'est la fête !"
+    ],
+    "slack": [
+      "Juste une petite partie…",
+      "Personne ne regarde…",
+      "Zzz…",
+      "Pause méritée."
+    ],
+    "boss_patrol": [
+      "Hmm.",
+      "Tout le monde travaille, j'espère.",
+      "Productivité, productivité…",
+      "Je vous ai à l'œil.",
+      "Bien, bien, bien."
+    ],
+    "boss_hear": [
+      "Qu'est-ce que c'était ?",
+      "Quel est ce bruit ?!",
+      "Qui fait ce vacarme ?",
+      "Hmm ? Je vais voir ça."
+    ],
+    "boss_investigate": [
+      "Qui a fait ça ?",
+      "Quelqu'un a une explication ?",
+      "Je veux des noms.",
+      "Personne n'a rien vu, bien sûr…"
+    ],
+    "boss_suspicious": [
+      "Vous, là. Je vous surveille.",
+      "Hmm… curieux.",
+      "Qu'est-ce que vous faites ici ?",
+      "Tiens tiens tiens."
+    ],
+    "boss_caught": [
+      "JE VOUS AI VU !",
+      "Pris la main dans le sac !",
+      "Qu'est-ce que vous fabriquez ?!",
+      "Dans mon bureau. Maintenant."
+    ],
+    "boss_angry": [
+      "C'est inadmissible !",
+      "Ce n'est pas une cour de récréation ici !",
+      "Je vais finir par sévir !"
+    ],
+    "boss_sanction": [
+      "Avertissement. Ne recommencez pas.",
+      "Ce sera retenu sur votre salaire.",
+      "Je confisque ça.",
+      "Dernier avertissement !"
+    ],
+    "boss_clear": [
+      "Bon. Je vous crois… pour cette fois.",
+      "Retournez travailler.",
+      "Mmh. Disparaissez."
+    ],
+    "boss_meeting": [
+      "Bien, commençons. Synergie !",
+      "Ordre du jour : les ordres du jour.",
+      "Je veux des résultats !",
+      "Des questions ? Non ? Parfait."
+    ],
+    "boss_phone": [
+      "Oui ? … Oui. … Non. … OUI.",
+      "Je vous écoute, Monsieur le Président.",
+      "Ha ha ha, bien sûr !",
+      "Je vous rappelle. Non, attendez !"
+    ],
+    "boss_inspection": [
+      "Inspection ! Tout le monde à son poste !",
+      "Voyons voir ce bureau…",
+      "Montrez-moi votre écran.",
+      "Ce tiroir, il contient quoi ?"
+    ],
+    "boss_anomaly": [
+      "Pourquoi cette chaise est là ?",
+      "Qui a déplacé ça ?",
+      "Quelque chose cloche ici.",
+      "C'est quoi ce désordre ?"
+    ],
+    "boss_fart": [
+      "… QUI A MIS ÇA LÀ ?!",
+      "C'EST UNE BLAGUE ?!",
+      "Je veux le coupable dans mon bureau !"
+    ],
+    "boss_slip": [
+      "WOAAAH !",
+      "MON DOS !",
+      "QUI A LAISSÉ ÇA PAR TERRE ?!"
+    ],
+    "boss_caricature": [
+      "C'EST MOI, ÇA ?!",
+      "Très drôle. Le coupable va moins rire.",
+      "Effacez-moi ça immédiatement !"
+    ],
+    "boss_mug": [
+      "Où est mon mug ?!",
+      "Mon mug « Meilleur Chef » a disparu !"
+    ],
+    "boss_distracted": [
+      "Oh, des croissants…",
+      "Où en étais-je ?",
+      "Ah oui, mon rendez-vous !"
+    ],
+    "interrogate_open": [
+      "J'ai quelques questions pour vous.",
+      "Asseyez-vous. Enfin, restez debout.",
+      "Expliquez-moi ce qui s'est passé."
+    ],
+    "deny": [
+      "Ce n'était pas moi !",
+      "Moi ? Jamais !",
+      "Je travaillais !"
+    ],
+    "excuse": [
+      "Je cherchais mon stylo.",
+      "J'allais à l'imprimante.",
+      "On m'a demandé de déplacer ça.",
+      "Je vérifiais un truc pour vous !"
+    ],
+    "confess": [
+      "… D'accord, c'était moi.",
+      "Je plaide coupable.",
+      "C'était pour l'esprit d'équipe !"
+    ],
+    "accuse": [
+      "C'est {name} ! Je l'ai vu !",
+      "Demandez plutôt à {name}.",
+      "{name} rôdait par là."
+    ],
+    "klaxon_victim": [
+      "AAAH ! Mon cœur !",
+      "Qui klaxonne au bureau ?!",
+      "J'ai renversé mon café !",
+      "Mais t'es malade ?!",
+      "Je suis devenu sourd."
+    ],
+    "itch": [
+      "Ça gratte ! Ça gratte !",
+      "Aïe aïe, qu'est-ce qui me gratte ?!",
+      "Mon pantalon est hanté !",
+      "Je vais me rouler par terre !"
+    ],
+    "cafard": [
+      "UN CAFARD !!",
+      "Aaaah une bestiole !",
+      "Appelez le service hygiène !",
+      "Il m'a regardé !"
+    ],
+    "stink": [
+      "Quelle horreur cette odeur !",
+      "Qui a mangé des œufs pourris ?!",
+      "Je sors, je sors !",
+      "Mes yeux pleurent !"
+    ],
+    "water_hit": [
+      "Je suis trempé !",
+      "Hé ! Ma chemise !",
+      "C'est la guerre ?!",
+      "Pistolet à eau au bureau, sérieusement ?"
+    ],
+    "snake": [
+      "UN SERPENT !!",
+      "BOING ?! Qui a fait ça ?!",
+      "J'ai failli mourir !",
+      "Mon tiroir est piégé !"
+    ],
+    "mine": [
+      "Hé ! C'est à moi, ça !",
+      "Rends-moi ça !",
+      "Pose ça tout de suite !"
+    ],
+    "bumped": [
+      "Hé, attention !",
+      "Tu pourrais t'excuser !",
+      "Aïe ! Regarde où tu marches !",
+      "Doucement !"
+    ],
+    "my_chair_taken": [
+      "Tu es sur ma chaise, là.",
+      "Euh… c'est ma place.",
+      "Lève-toi, c'est mon bureau !"
+    ],
+    "phone_call": [
+      "Allô ? Oui… non… oui. Non.",
+      "Comptabilité, j'écoute. Ah, c'est maman.",
+      "Je vous rappelle, j'ai une réunion. Non, je n'en ai pas.",
+      "Allô ? Le dossier ? Quel dossier ?",
+      "Oui, je transfère. Ah, je l'ai raccroché."
+    ],
+    "throw_near": [
+      "Hé ! Ça a failli me toucher !",
+      "Qui lance des trucs ?!",
+      "On se calme avec les projectiles !"
+    ],
+    "running": [
+      "On ne court pas dans les couloirs !",
+      "Doucement, c'est pas un stade !",
+      "Il y a le feu ?"
+    ]
   }
 }

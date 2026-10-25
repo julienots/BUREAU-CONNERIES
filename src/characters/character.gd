@@ -532,6 +532,10 @@ func _handle_collisions(hv: Vector3) -> void:
 			Game.session.emit_sound(global_position + Vector3(0, 1, 0), 38.0, "bump", id, "")
 			oc.take_hit(hv * 6.0, self)
 			stumble("collision", "")
+			Game.session.on_bumped(oc, self)
+		elif other is Character and hv.length() > 0.9 and now - _last_bump_t > 2.5:
+			_last_bump_t = now
+			Game.session.on_bumped(other as Character, self)
 
 
 # ------------------------------------------------------------------ knockdowns
@@ -737,6 +741,19 @@ func look_at_point(p: Vector3) -> void:
 
 func clear_look() -> void:
 	humanoid.look_target = Vector3.INF
+
+
+var _alert_until := 0.0
+
+## Short-lived "!" / "?" above an NPC's head (they saw / heard something).
+func flash_alert(text: String, c: Color, dur := 2.0) -> void:
+	if alert_icon == null or (alert_icon.visible and alert_icon.text == "!" and text == "?"):
+		return
+	set_alert(text, c)
+	_alert_until = Game.time() + dur
+	get_tree().create_timer(dur).timeout.connect(func():
+		if is_instance_valid(self) and Game.time() >= _alert_until - 0.05:
+			set_alert(""))
 
 
 func set_alert(text: String, c := Color(1, 0.8, 0.1)) -> void:

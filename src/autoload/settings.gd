@@ -52,6 +52,7 @@ const DEFAULT_KEYS := {
 	"throw": [-MOUSE_BUTTON_RIGHT],
 	"inventory": [KEY_I],
 	"objectives": [KEY_O],
+	"shop": [KEY_B],
 	"use_item": [KEY_R],
 	"pause": [KEY_ESCAPE, KEY_P],
 	"notebook": [KEY_N],

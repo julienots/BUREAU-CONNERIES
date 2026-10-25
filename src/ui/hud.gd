@@ -25,6 +25,12 @@ var banner: Label
 var inv_box: HBoxContainer
 var crosshair: ColorRect
 var hint_l: Label
+var shop_btn: Button
+var pause_btn: Button          # touch only (the keyboard uses Échap)
+var mission_chip: Button
+var trust_bar: ProgressBar
+var trust_l: Label
+var _last_trust := -1.0
 var _act_t := 0.0
 var _act_total := 0.0
 var _last_level := 0
@@ -101,10 +107,43 @@ func _build_top() -> void:
 	var fill := UiKit.box(UiKit.GOOD, 7)
 	prod_bar.add_theme_stylebox_override("fill", fill)
 	prow.add_child(prod_bar)
+	# current secret mission, always visible; tap/click to see them all
+	mission_chip = Button.new()
+	mission_chip.focus_mode = Control.FOCUS_NONE
+	mission_chip.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	mission_chip.clip_text = true
+	mission_chip.custom_minimum_size = Vector2(250, 44)
+	mission_chip.add_theme_font_size_override("font_size", 16)
+	mission_chip.add_theme_stylebox_override("normal", UiKit.box(Color(0.3, 0.26, 0.08, 0.9), 10, 2, UiKit.YELLOW))
+	mission_chip.add_theme_stylebox_override("hover", UiKit.box(Color(0.38, 0.33, 0.1, 0.95), 10, 2, UiKit.YELLOW))
+	mission_chip.pressed.connect(toggle_objectives)
+	lv.add_child(mission_chip)
 	var sp := Control.new()
 	sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	sp.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	top.add_child(sp)
+	shop_btn = Button.new()
+	shop_btn.text = "BOUTIQUE"
+	shop_btn.focus_mode = Control.FOCUS_NONE
+	shop_btn.custom_minimum_size = Vector2(150, 64)
+	shop_btn.add_theme_font_override("font", UiKit.title_font)
+	shop_btn.add_theme_font_size_override("font_size", 22)
+	shop_btn.add_theme_color_override("font_color", Color.BLACK)
+	shop_btn.add_theme_color_override("font_hover_color", Color.BLACK)
+	shop_btn.add_theme_color_override("font_pressed_color", Color.BLACK)
+	shop_btn.add_theme_stylebox_override("normal", UiKit.box(UiKit.YELLOW, 16))
+	shop_btn.add_theme_stylebox_override("hover", UiKit.box(UiKit.YELLOW.lightened(0.15), 16))
+	shop_btn.add_theme_stylebox_override("pressed", UiKit.box(UiKit.YELLOW.darkened(0.2), 16))
+	shop_btn.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	shop_btn.pressed.connect(func(): pc.ui_open.emit("shop", {"target": ""}))
+	pause_btn = UiKit.button("II", func(): pass, 64, 24)
+	pause_btn.focus_mode = Control.FOCUS_NONE
+	pause_btn.custom_minimum_size = Vector2(64, 64)
+	pause_btn.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	pause_btn.visible = Settings.use_touch()
+	pause_btn.tooltip_text = "Pause"
+	top.add_child(pause_btn)
+	top.add_child(shop_btn)
 	var right := UiKit.panel()
 	right.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	top.add_child(right)
@@ -113,10 +152,23 @@ func _build_top() -> void:
 	money_l = UiKit.label("0 €", 28, UiKit.YELLOW, true)
 	money_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	rv.add_child(money_l)
+	# the director's opinion of you
+	var trow := UiKit.hbox(6)
+	trow.alignment = BoxContainer.ALIGNMENT_END
+	rv.add_child(trow)
+	trow.add_child(UiKit.label("Le chef", 15, UiKit.MUTED))
+	trust_bar = ProgressBar.new()
+	trust_bar.custom_minimum_size = Vector2(120, 14)
+	trust_bar.show_percentage = false
+	trust_bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	trow.add_child(trust_bar)
+	trust_l = UiKit.label("Neutre", 15, UiKit.TEXT)
+	trust_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	rv.add_child(trust_l)
 	var srow := UiKit.hbox(4)
 	srow.alignment = BoxContainer.ALIGNMENT_END
 	rv.add_child(srow)
-	srow.add_child(UiKit.label("👁", 18))
+	srow.add_child(UiKit.label("Soupçons", 15, UiKit.MUTED))
 	for i in 5:
 		var d := ColorRect.new()
 		d.custom_minimum_size = Vector2(16, 12)
@@ -129,15 +181,35 @@ func _build_top() -> void:
 	rv.add_child(sus_l)
 
 
+func toggle_objectives() -> void:
+	obj_panel.visible = not obj_panel.visible
+	SoundFx.ui("ui_click")
+
+
+## Day start briefing: show the secret objectives for a few seconds so nobody misses them.
+func brief_objectives(dur := 12.0) -> void:
+	obj_panel.visible = true
+	notify("Tes missions secrètes du jour sont affichées à gauche. Touche le bandeau « Mission » en haut pour les revoir.", "event")
+	get_tree().create_timer(dur).timeout.connect(func():
+		if is_instance_valid(obj_panel):
+			obj_panel.visible = false)
+
+
 func _build_objectives() -> void:
 	obj_panel = UiKit.panel(Vector2(330, 0))
-	obj_panel.position = Vector2(16, 150)
+	obj_panel.position = Vector2(16, 190)
 	obj_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	if Settings.use_touch():
-		obj_panel.position = Vector2(16, 132)
+	obj_panel.visible = false
 	root.add_child(obj_panel)
 	obj_box = UiKit.vbox(6)
-	obj_panel.add_child(obj_box)
+	if Settings.use_touch():
+		# phones: keep the list above the joystick, scroll with a finger
+		var sc := UiKit.scroll(obj_box, Vector2(320, 230))
+		sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+		obj_panel.add_child(sc)
+		obj_panel.position = Vector2(16, 176)
+	else:
+		obj_panel.add_child(obj_box)
 
 
 func _build_prompt() -> void:
@@ -232,7 +304,9 @@ func _process(delta: float) -> void:
 	crosshair.visible = Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
 	# objectives toggle
 	if Input.is_action_just_pressed("objectives"):
-		obj_panel.visible = not obj_panel.visible
+		toggle_objectives()
+	if Input.is_action_just_pressed("shop") and not pc.blocked:
+		pc.ui_open.emit("shop", {"target": ""})
 
 
 func refresh() -> void:
@@ -251,12 +325,42 @@ func refresh() -> void:
 	_last_level = lvl
 	_refresh_objectives()
 	_refresh_inventory()
+	_refresh_trust()
+
+
+func _refresh_trust() -> void:
+	var hidden := session.mode != "solo" and not ch.is_director()
+	trust_bar.get_parent().visible = not hidden and not ch.is_director()
+	trust_l.visible = trust_bar.get_parent().visible
+	if hidden or ch.is_director():
+		return
+	var v := session.trust_of(ch.id)
+	trust_bar.value = v
+	var col := UiKit.BAD.lerp(UiKit.YELLOW, clampf(v / 50.0, 0, 1)) if v < 50.0 else UiKit.YELLOW.lerp(UiKit.GOOD, clampf((v - 50.0) / 50.0, 0, 1))
+	trust_bar.add_theme_stylebox_override("fill", UiKit.box(col, 7))
+	trust_l.text = Session.trust_mood(v)
+	trust_l.add_theme_color_override("font_color", col)
+	if _last_trust >= 0.0 and absf(v - _last_trust) >= 1.0:
+		var tw := trust_bar.create_tween()
+		trust_bar.modulate = Color(1.6, 1.6, 1.6) if v > _last_trust else Color(1.6, 0.6, 0.6)
+		tw.tween_property(trust_bar, "modulate", Color.WHITE, 0.6)
+	_last_trust = v
 
 
 func _refresh_objectives() -> void:
 	var ms: MissionSystem = session.missions.get(ch.id)
 	if ms == null:
+		mission_chip.visible = false
 		return
+	var cur := ""
+	var n_done := 0
+	for id in ms.active:
+		if ms.is_done(id):
+			n_done += 1
+		elif cur == "":
+			cur = id
+	mission_chip.visible = true
+	mission_chip.text = ("Mission : %s  (+%d €)" % [ms.title(cur), ms.reward_of(cur)] if cur != "" else "Missions terminées !") + "   %d/%d  ▸" % [n_done, ms.active.size()]
 	var sig := ""
 	for id in ms.all_ids():
 		sig += id + str(ms.is_done(id)) + str(ms.progress.get(id, "")) + str(ms._hold.get(id, 0))
@@ -265,7 +369,7 @@ func _refresh_objectives() -> void:
 	_obj_sig = sig
 	for c in obj_box.get_children():
 		c.queue_free()
-	obj_box.add_child(UiKit.label("OBJECTIFS SECRETS  [%s]" % Settings.key_label("objectives"), 18, UiKit.YELLOW, true))
+	obj_box.add_child(UiKit.label("OBJECTIFS SECRETS" + ("" if Settings.use_touch() else "  [%s]" % Settings.key_label("objectives")), 18, UiKit.YELLOW, true))
 	for id in ms.active:
 		_obj_row(ms, id, true)
 	obj_box.add_child(UiKit.label("Défis", 15, UiKit.MUTED))
@@ -308,8 +412,8 @@ func _refresh_inventory() -> void:
 		if i < ch.items.size():
 			var it: String = ch.items[i]
 			var ic := UiKit.icon(it, 46)
-			ic.set_anchors_preset(Control.PRESET_CENTER)
-			ic.position = Vector2(9, 9)
+			ic.position = Vector2(9, 9)   # top-left anchors: the slot is still 0x0 when built
+			ic.size = Vector2(46, 46)
 			ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			b.add_child(ic)
 			b.tooltip_text = Data.item_name(it)
@@ -323,7 +427,7 @@ func _refresh_inventory() -> void:
 		inv_box.add_child(b)
 	var extra := session.item_actions(ch).filter(func(a): return a.id in ["trigger_buzzer"])
 	for a in extra:
-		var tb := UiKit.button("📡", func(): pc.send(ch.id, a.id, {"item": a.item, "target": a.get("target", "")}), 64, 26)
+		var tb := UiKit.button("BUZZ", func(): pc.send(ch.id, a.id, {"item": a.item, "target": a.get("target", "")}), 80, 18)
 		tb.tooltip_text = a.label
 		inv_box.add_child(tb)
 
@@ -345,8 +449,10 @@ func open_item_menu(item: String) -> void:
 			opts.append({"label": a.label, "value": a})
 	if opts.is_empty():
 		var why := "Utilise-le sur un objet du décor (vise-le puis %s)." % Settings.key_label("interact")
-		if item == "confettis":
-			why = "À cacher dans un tiroir (vise un tiroir)."
+		if item in ["confettis", "serpent"]:
+			why = "À cacher dans un tiroir : approche-toi d'un tiroir de bureau et choisis l'action."
+		elif item == "poil_gratter":
+			why = "Approche-toi d'une chaise (celle d'un collègue !) et choisis « Saupoudrer »."
 		elif item == "post_its":
 			why = "Vise l'ordinateur d'un collègue absent."
 		notify(Data.item_name(item) + " — " + why, "info")
@@ -355,7 +461,16 @@ func open_item_menu(item: String) -> void:
 	cp.chosen.connect(func(v): pc.send(ch.id, String(v.id), {"item": item, "target": v.get("target", "")}))
 
 
+var _prompt_sig := ""
+
+
 func _on_focus(f: Dictionary) -> void:
+	var sig := "%s|%d|%s" % [f.get("target", ""), int(f.get("index", 0)), str(pc.blocked)]
+	for a in f.get("actions", []):
+		sig += "|" + String(a.get("label", "")) + String(a.get("blocked", ""))
+	if sig == _prompt_sig:
+		return   # rebuilding every frame would swallow taps
+	_prompt_sig = sig
 	for c in prompt_v.get_children():
 		c.queue_free()
 	var acts: Array = f.get("actions", [])
@@ -423,6 +538,10 @@ func notify(text: String, kind := "info") -> void:
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	p.add_child(l)
 	notif_box.add_child(p)
+	# autowrapped labels report a one-line minimum height on their first frame: fix it once laid out
+	(func():
+		if is_instance_valid(l):
+			l.custom_minimum_size.y = l.get_line_count() * l.get_line_height() + 2).call_deferred()
 	while notif_box.get_child_count() > 4:
 		notif_box.get_child(0).queue_free()
 		notif_box.remove_child(notif_box.get_child(0))

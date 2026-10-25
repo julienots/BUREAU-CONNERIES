@@ -33,6 +33,7 @@ var run_hint: Label
 func setup(controller: PlayerController) -> void:
 	pc = controller
 	layer = 6
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	root = Control.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -86,14 +87,7 @@ func setup(controller: PlayerController) -> void:
 	_br(throw_btn, -520, -220)
 	stand_btn = _btn("Se lever", func(): _do(func(): pc.session.request_action(pc.ch, pc.ch.id, "stand")), Vector2(150, 84))
 	_br(stand_btn, -520, -120)
-	# top corner: objectives + pause
-	var top := UiKit.hbox(10)
-	top.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	top.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	top.offset_top = 14
-	root.add_child(top)
-	top.add_child(_btn("Objectifs", func(): objectives_requested.emit(), Vector2(140, 64)))
-	top.add_child(_btn("II", func(): pause_requested.emit(), Vector2(80, 64)))
+	# (the pause button lives in the HUD top bar, next to BOUTIQUE)
 	for b in [action_btn, prev_btn, next_btn, crouch_btn, drop_btn, throw_btn, stand_btn]:
 		root.add_child(b)
 	pc.focus_changed.connect(_on_focus)
@@ -173,8 +167,68 @@ func _place_stick(c: Vector2) -> void:
 	_stick_knob.position = c - _stick_knob.size * 0.5
 
 
+## Godot only turns the FIRST finger into mouse clicks, so buttons pressed with a second
+## finger (thumb already on the joystick) would be ignored. Any extra finger is routed
+## to the button under it here, whatever the screen (HUD, action list, shop, menus).
+var _consumed: Dictionary = {}
+
+
+static func button_at(tree: SceneTree, p: Vector2) -> Button:
+	var best: Button = null
+	var best_layer := -1000
+	for c in tree.root.find_children("*", "Button", true, false):
+		var b := c as Button
+		if not b.is_visible_in_tree() or b.disabled or not b.get_global_rect().grow(6).has_point(p):
+			continue
+		var layer := 0
+		var n: Node = b
+		while n:
+			if n is CanvasLayer:
+				layer = (n as CanvasLayer).layer
+				break
+			n = n.get_parent()
+		if layer >= best_layer:
+			best_layer = layer
+			best = b
+	return best
+
+
+func _dispatch_extra_finger(event: InputEventScreenTouch) -> bool:
+	if event.pressed:
+		if event.index == 0:
+			return false
+		var b := button_at(get_tree(), event.position)
+		if b == null:
+			return false
+		_consumed[event.index] = true
+		b.modulate = Color(1.3, 1.3, 1.0)
+		var tw := b.create_tween()
+		tw.tween_property(b, "modulate", Color.WHITE, 0.15)
+		if b.toggle_mode:
+			b.button_pressed = not b.button_pressed
+		b.pressed.emit()
+		_haptic()
+		get_viewport().set_input_as_handled()
+		return true
+	if _consumed.has(event.index):
+		_consumed.erase(event.index)
+		get_viewport().set_input_as_handled()
+		return true
+	return false
+
+
 func _input(event: InputEvent) -> void:
-	if pc == null or pc.blocked:
+	if pc == null:
+		return
+	if event is InputEventScreenTouch and _dispatch_extra_finger(event):
+		return
+	if pc.blocked:
+		if _stick_touch >= 0:
+			_stick_touch = -1
+			pc.mobile_move = Vector2.ZERO
+			pc.mobile_run = false
+			_place_stick(_rest)
+		_look_touch = -1
 		return
 	var vp := root.get_viewport_rect().size
 	if event is InputEventScreenTouch:

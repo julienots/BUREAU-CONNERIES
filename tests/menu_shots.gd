@@ -18,4 +18,9 @@ func _ready() -> void:
 	add_child(menu)
 	await get_tree().create_timer(3.0).timeout
 	get_viewport().get_texture().get_image().save_png(out + "/menu.png")
+	var ui: Control = menu.get("ui")
+	if ui:
+		ShopPanel.open(ui, null, null)
+		await get_tree().create_timer(1.0).timeout
+		get_viewport().get_texture().get_image().save_png(out + "/menu_shop.png")
 	get_tree().quit()

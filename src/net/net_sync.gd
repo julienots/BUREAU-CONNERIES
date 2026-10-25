@@ -836,7 +836,7 @@ func send_director_note_text(text: String) -> void:
 	if pid == 1 and Net.role == "host":
 		_local_notify(text, "event")
 	elif pid > 1:
-		s2c_notify.rpc_id(pid, "📓 " + text, "event")
+		s2c_notify.rpc_id(pid, "Carnet : " + text, "event")
 
 
 func send_director_testimony(witness: String, accused: String, act_id: int, kind: String) -> void:

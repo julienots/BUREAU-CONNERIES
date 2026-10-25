@@ -41,6 +41,24 @@ static func visibility(world: OfficeWorld, obs: Character, tgt: Character, fov_d
 	return clampf(f * dist_f * ang_f * light * posture, 0.0, 1.0)
 
 
+## Can `obs` see a point (object on the floor...) within cone and range?
+static func sees_point(world: OfficeWorld, obs: Character, pt: Vector3, fov_deg: float, view_range: float, excl: Array[RID] = []) -> bool:
+	if obs.is_down():
+		return false
+	var eye := obs.eye_position()
+	var to := pt - eye
+	if to.length() > view_range:
+		return false
+	var flat := Vector3(to.x, 0, to.z)
+	if flat.length() > 1.0:
+		var ang := rad_to_deg(acos(clampf(view_dir(obs).dot(flat.normalized()), -1.0, 1.0)))
+		if ang > fov_deg * 0.5:
+			return false
+	var ex: Array[RID] = [obs.get_rid()]
+	ex.append_array(excl)
+	return world.line_clear(eye, pt, ex)
+
+
 ## Where the character is looking (body forward, turned by an explicit look target).
 static func view_dir(c: Character) -> Vector3:
 	if c.humanoid and c.humanoid.look_target != Vector3.INF:

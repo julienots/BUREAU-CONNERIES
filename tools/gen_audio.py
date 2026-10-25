@@ -335,6 +335,24 @@ def gen_sfx():
     save("smell_waft", bandpass_fast(noise(1.0), 200, 900) * np.sin(np.pi * t_axis(1.0)) ** 2, 0.4)
     save("whistle", tone(lambda q: 1800 + 300 * np.sin(2 * np.pi * 30 * q), 0.6) * env_ad(int(0.6 * SR), 0.02, 0.5, 1.2), 0.5)
 
+    # Farces & Attrapes ----------------------------------------------------------
+    dur = 1.1
+    tt = t_axis(dur)
+    horn = mix(tone(lambda q: 440 + 6 * np.sin(2 * np.pi * 7 * q), dur, "saw"), tone(lambda q: 554 + 6 * np.sin(2 * np.pi * 7 * q), dur, "saw") * 0.8,
+               tone(lambda q: 659, dur, "square") * 0.4)
+    save("air_horn", lowpass_fast(horn, 4000) * np.clip(tt * 30, 0, 1) * np.clip((dur - tt) * 6, 0, 1), 0.95)
+    tt = t_axis(0.35)
+    save("squirt", bandpass_fast(noise(0.35), 1500, 7000) * env_ad(len(tt), 0.005, 0.25, 2) + tone(lambda q: 900 - 900 * q, 0.35) * 0.1, 0.6)
+    save("splash", mix(rustle(0.5, 220, 2000, 9000), thud(200, 0.2, 0.3) * 0.3), 0.6)
+    tt = t_axis(0.8)
+    boing = np.sin(2 * np.pi * np.cumsum(180 + 220 * np.abs(np.sin(2 * np.pi * 9 * tt)) * np.exp(-tt * 3)) / SR) * env_ad(len(tt), 0.003, 0.7, 2)
+    save("boing", mix(boing, click(800, 0.04)), 0.8)
+    x = np.zeros(int(0.9 * SR))
+    for k in range(10):
+        place(x, bandpass_fast(noise(0.05), 2500, 8000) * env_ad(int(0.05 * SR), 0.002, 0.03), k * 0.08)
+    save("scratch", x, 0.5)
+
+
     # UI ---------------------------------------------------------------------
     save("ui_click", resonant_hit([1200, 2400], 0.08, 0.03, 0.2, 800), 0.4)
     save("ui_hover", resonant_hit([1800], 0.05, 0.02, 0.0), 0.2)

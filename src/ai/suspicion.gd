@@ -12,6 +12,7 @@ var gain := 1.0
 var decay_per_min := 3.0
 var max_evidence := 12
 var reliability: Dictionary = {}   # witness id -> 0..1 (how much the director trusts them)
+var person_gain: Dictionary = {}   # char_id -> multiplier from the director's opinion of them
 
 
 func level(who: String) -> int:
@@ -33,7 +34,7 @@ func score(who: String) -> float:
 func add(who: String, amount: float, type: String, act_id := -1, source := "", now := 0.0) -> void:
 	if who == "":
 		return
-	var a := amount * gain if amount > 0.0 else amount
+	var a := amount * gain * float(person_gain.get(who, 1.0)) if amount > 0.0 else amount
 	scores[who] = clampf(score(who) + a, 0.0, 100.0)
 	if not evidence.has(who):
 		evidence[who] = []

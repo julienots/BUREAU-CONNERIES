@@ -4,12 +4,13 @@ class_name PropFactory
 const POCKET_ITEMS := {
 	"duck": "canard", "banana": "banane", "buzzer": "buzzer", "stapler": "agrafeuse", "salt": "sel",
 	"marker": "marqueur", "fish_box": "poisson", "mug_boss": "mug_boss", "coffee_cup": "cafe", "folder": "dossier",
+	"cafard": "cafard",
 }
 ## Inventory item -> prop kind spawned when the item is dropped in the world
 const ITEM_TO_PROP := {
 	"canard": "duck", "banane": "banana", "buzzer": "buzzer", "agrafeuse": "stapler", "sel": "salt",
 	"marqueur": "marker", "poisson": "fish_box", "mug_boss": "mug_boss", "cafe": "coffee_cup", "dossier": "folder",
-	"coussin_peteur": "cushion",
+	"coussin_peteur": "cushion", "cafard": "cafard",
 }
 
 
@@ -134,6 +135,18 @@ static func make(kind: String) -> Prop:
 		"binder":
 			_box_prop(p, vis, Vector3(0.07, 0.3, 0.26), Mats.color(Color.from_hsv(randf(), 0.6, 0.6), 0.5), 0.7, "plastic")
 			p.display = "Classeur"
+		"cafard":
+			var bm := Mats.color(Color(0.25, 0.14, 0.07), 0.3)
+			MeshKit.add(vis, MeshKit.sphere(0.03, 10, 0.5), bm, Vector3(0, 0.012, 0)).scale = Vector3(1.0, 1.0, 1.6)
+			MeshKit.add(vis, MeshKit.sphere(0.016, 8), bm, Vector3(0, 0.012, -0.045))
+			for k in 6:
+				var lg := MeshKit.add(vis, MeshKit.cylinder(0.003, 0.05, 4), bm, Vector3((-1 if k % 2 == 0 else 1) * 0.03, 0.006, -0.02 + (k / 2) * 0.02))
+				lg.rotation = Vector3(0, 0, PI * 0.5 + (0.3 if k % 2 == 0 else -0.3))
+			_shape_box(p, Vector3(0.06, 0.03, 0.1), Vector3(0, 0.015, 0))
+			p.mass = 0.05
+			p.mat_kind = "plastic"
+			p.display = "Cafard (faux !)"
+			p.tags.append("cafard")
 		"shard":
 			_box_prop(p, vis, Vector3(0.03, 0.01, 0.04), Mats.color(Color(0.9, 0.9, 0.9), 0.3), 0.02, "ceramic", 0.0)
 		_:
