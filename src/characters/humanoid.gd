@@ -37,62 +37,116 @@ var _cur: Dictionary = {}
 var _pelvis_base := 0.95
 
 
+static var _mats: Dictionary = {}
+
+
+## Character material: soft rim light for a polished stylised look (cached & shared).
+static func cmat(c: Color, rough := 0.75, rim := 0.35, metal := 0.0) -> StandardMaterial3D:
+	var key := "%s_%.2f_%.2f_%.2f" % [c.to_html(), rough, rim, metal]
+	if _mats.has(key):
+		return _mats[key]
+	var m := StandardMaterial3D.new()
+	m.albedo_color = c
+	m.roughness = rough
+	m.metallic = metal
+	if rim > 0.0:
+		m.rim_enabled = true
+		m.rim = rim
+		m.rim_tint = 0.55
+	_mats[key] = m
+	return m
+
+
 func build(appearance: Dictionary) -> void:
 	look = appearance
 	for c in get_children():
 		c.queue_free()
 	j.clear()
-	var skin := Mats.hex(appearance.get("skin", "#e9bb98"), 0.65)
-	var shirt := Mats.hex(appearance.get("shirt", "#3fa7d6"), 0.85)
-	var pants := Mats.hex(appearance.get("pants", "#2b2f3a"), 0.85)
-	var shoes := Mats.color(Color(0.1, 0.09, 0.09), 0.4, 0.1)
-	var hair_c := Mats.hex(appearance.get("hair_color", "#3b2a1e"), 0.75)
+	var skin_c := Color(appearance.get("skin", "#e9bb98"))
+	var shirt_c := Color(appearance.get("shirt", "#3fa7d6"))
+	var pants_c := Color(appearance.get("pants", "#2b2f3a"))
+	var skin := cmat(skin_c, 0.55, 0.3)
+	var shirt := cmat(shirt_c, 0.85)
+	var shirt_dark := cmat(shirt_c.darkened(0.18), 0.85)
+	var shirt_light := cmat(shirt_c.lightened(0.18), 0.85)
+	var pants := cmat(pants_c, 0.85)
+	var hair_c := cmat(Color(appearance.get("hair_color", "#3b2a1e")), 0.6, 0.45)
 	var b: float = appearance.get("build", 1.0)
 	var jacket: bool = appearance.get("jacket", false)
+	var sneakers := shirt_c.v > 0.6 and shirt_c.s > 0.5 and not jacket
+	var shoe_up := cmat(Color(0.95, 0.95, 0.95) if sneakers else Color(0.2, 0.13, 0.09), 0.45, 0.2)
+	var sole := cmat(Color(0.12, 0.12, 0.12) if not sneakers else Color(0.85, 0.3, 0.25), 0.7, 0.0)
 	scale = Vector3.ONE * float(appearance.get("height", 1.0))
 
+	# --- hips & belt
 	var pelvis := _joint("pelvis", self, Vector3(0, _pelvis_base, 0))
-	MeshKit.add(pelvis, MeshKit.rounded_box(Vector3(0.34 * b, 0.2, 0.21), 0.07, 3), pants, Vector3(0, -0.02, 0))
+	MeshKit.add(pelvis, MeshKit.rounded_box(Vector3(0.34 * b, 0.2, 0.21), 0.08, 3), pants, Vector3(0, -0.03, 0))
+	MeshKit.add(pelvis, MeshKit.rounded_box(Vector3(0.335 * b, 0.04, 0.205), 0.018, 2), cmat(Color(0.12, 0.09, 0.07), 0.5), Vector3(0, 0.0, 0))
+	MeshKit.add(pelvis, MeshKit.rounded_box(Vector3(0.05, 0.035, 0.02), 0.006, 1), cmat(Color(0.95, 0.75, 0.3), 0.25, 0.1, 0.9), Vector3(0, 0.0, -0.104))
 	if appearance.get("skirt", false):
-		var sk := MeshKit.add(pelvis, MeshKit.cylinder(0.2 * b, 0.42, 16, 0.17 * b), pants, Vector3(0, -0.2, 0))
-		sk.scale = Vector3(1, 1, 0.75)
+		var sk := MeshKit.add(pelvis, MeshKit.cylinder(0.205 * b, 0.42, 20, 0.175 * b), pants, Vector3(0, -0.2, 0))
+		sk.scale = Vector3(1, 1, 0.78)
+	# --- torso
 	var spine := _joint("spine", pelvis, Vector3(0, 0.08, 0))
-	var torso_mat := shirt
-	MeshKit.add(spine, MeshKit.rounded_box(Vector3(0.36 * b, 0.36, 0.22 * maxf(b, 0.9)), 0.09, 3), torso_mat, Vector3(0, 0.16, 0.0))
+	var torso_w := 0.36 * b
+	MeshKit.add(spine, MeshKit.rounded_box(Vector3(torso_w, 0.44, 0.215 * maxf(b, 0.9)), 0.09, 4), shirt, Vector3(0, 0.13, 0))
 	if b > 1.1:
-		MeshKit.add(spine, MeshKit.sphere(0.17 * b, 16), torso_mat, Vector3(0, 0.08, -0.04)).scale = Vector3(1.0, 0.9, 0.85)  # belly
+		MeshKit.add(spine, MeshKit.sphere(0.17 * b, 18), shirt, Vector3(0, 0.08, -0.045)).scale = Vector3(1.0, 0.9, 0.85)
+	var front_z := -0.11 * maxf(b, 0.9) - (0.04 if b > 1.1 else 0.0)
+	if not jacket:
+		MeshKit.add(spine, MeshKit.rounded_box(Vector3(0.035, 0.34, 0.01), 0.004, 1), shirt_dark, Vector3(0, 0.17, front_z - 0.002))
+		for k in 3:
+			MeshKit.add(spine, MeshKit.sphere(0.009, 6), cmat(Color(0.95, 0.95, 0.92), 0.4, 0.0), Vector3(0, 0.07 + k * 0.1, front_z - 0.008))
+		MeshKit.add(spine, MeshKit.rounded_box(Vector3(0.075, 0.07, 0.01), 0.008, 1), shirt_dark, Vector3(-0.08 * b, 0.27, front_z + 0.004))
 	var chest := _joint("chest", spine, Vector3(0, 0.3, 0))
-	MeshKit.add(chest, MeshKit.rounded_box(Vector3(0.4 * b, 0.2, 0.23), 0.09, 3), torso_mat, Vector3(0, 0.0, 0))
+	MeshKit.add(chest, MeshKit.rounded_box(Vector3(0.41 * b, 0.21, 0.23), 0.1, 4), shirt, Vector3(0, 0.0, 0))
+	var collar_m := cmat(Color(0.97, 0.97, 0.95), 0.7) if (jacket or appearance.get("tie", "") != "") else shirt_light
+	for sx in [-1, 1]:
+		var col := MeshKit.add(chest, MeshKit.rounded_box(Vector3(0.07, 0.05, 0.02), 0.01, 1), collar_m, Vector3(sx * 0.045, 0.1, -0.1))
+		col.rotation = Vector3(-0.4, 0, sx * -0.5)
 	if jacket:
-		var jm := Mats.hex(appearance.get("shirt", "#3a3f4a"), 0.7)
-		MeshKit.add(spine, MeshKit.rounded_box(Vector3(0.12, 0.42, 0.01), 0.004, 1), Mats.color(Color(0.95, 0.95, 0.95), 0.6), Vector3(0, 0.2, -0.118))
+		MeshKit.add(spine, MeshKit.rounded_box(Vector3(0.12, 0.42, 0.01), 0.004, 1), cmat(Color(0.96, 0.96, 0.96), 0.6), Vector3(0, 0.2, front_z - 0.008))
 		for sx in [-1, 1]:
-			var lap := MeshKit.add(chest, MeshKit.rounded_box(Vector3(0.07, 0.2, 0.02), 0.008, 1), jm, Vector3(sx * 0.07, -0.02, -0.12))
+			var lap := MeshKit.add(chest, MeshKit.rounded_box(Vector3(0.075, 0.22, 0.02), 0.008, 1), shirt_light, Vector3(sx * 0.075, -0.02, -0.12))
 			lap.rotation.z = sx * 0.35
+		MeshKit.add(spine, MeshKit.sphere(0.012, 6), cmat(Color(0.1, 0.1, 0.1), 0.3), Vector3(0.0, 0.02, front_z - 0.012))
+		MeshKit.add(chest, MeshKit.rounded_box(Vector3(0.05, 0.03, 0.01), 0.004, 1), cmat(Color(0.95, 0.95, 0.95), 0.5), Vector3(-0.12, 0.0, -0.118))
 	if appearance.get("tie", "") != "":
-		var tm := Mats.hex(appearance.tie, 0.5)
-		MeshKit.add(chest, MeshKit.rounded_box(Vector3(0.05, 0.05, 0.03), 0.01, 1), tm, Vector3(0, 0.05, -0.115))
-		var tie := MeshKit.add(spine, MeshKit.rounded_box(Vector3(0.065, 0.32, 0.015), 0.006, 1), tm, Vector3(0, 0.2, -0.122))
+		var tm := cmat(Color(appearance.tie), 0.45, 0.25)
+		MeshKit.add(chest, MeshKit.rounded_box(Vector3(0.05, 0.05, 0.03), 0.012, 1), tm, Vector3(0, 0.07, -0.118))
+		var tie := MeshKit.add(spine, MeshKit.rounded_box(Vector3(0.065, 0.32, 0.015), 0.006, 1), tm, Vector3(0, 0.21, front_z - 0.012))
 		accessories["tie"] = tie
 	var neck := _joint("neck", chest, Vector3(0, 0.12, 0))
-	MeshKit.add(neck, MeshKit.cylinder(0.055, 0.1, 10), skin, Vector3(0, 0.02, 0))
+	MeshKit.add(neck, MeshKit.cylinder(0.055, 0.11, 12), skin, Vector3(0, 0.02, 0))
 	var head := _joint("head", neck, Vector3(0, 0.07, 0))
 	_build_head(head, skin, hair_c, appearance)
+	# --- arms
+	var sleeves: bool = appearance.get("long_sleeves", true)
 	for side in ["l", "r"]:
 		var sx := -1.0 if side == "l" else 1.0
 		var sh := _joint("shoulder_" + side, chest, Vector3(sx * (0.19 * b + 0.04), 0.04, 0))
-		MeshKit.add(sh, MeshKit.sphere(0.068, 10), torso_mat, Vector3.ZERO)
-		MeshKit.add(sh, MeshKit.capsule(0.058, 0.32), torso_mat, Vector3(0, -0.14, 0))
+		MeshKit.add(sh, MeshKit.sphere(0.064, 12), shirt, Vector3.ZERO)
+		MeshKit.add(sh, MeshKit.capsule(0.06, 0.33), shirt, Vector3(0, -0.14, 0))
 		var el := _joint("elbow_" + side, sh, Vector3(0, -0.28, 0))
-		MeshKit.add(el, MeshKit.capsule(0.052, 0.28), torso_mat if appearance.get("long_sleeves", true) else skin, Vector3(0, -0.12, 0))
+		MeshKit.add(el, MeshKit.sphere(0.056, 10), shirt if sleeves else skin, Vector3.ZERO)
+		MeshKit.add(el, MeshKit.capsule(0.052, 0.28), shirt if sleeves else skin, Vector3(0, -0.12, 0))
+		MeshKit.add(el, MeshKit.cylinder(0.056, 0.035, 12), shirt_dark, Vector3(0, -0.235, 0))
 		var hand := _joint("hand_" + side, el, Vector3(0, -0.26, 0))
-		MeshKit.add(hand, MeshKit.sphere(0.055, 10), skin, Vector3(0, -0.03, 0)).scale = Vector3(0.9, 1.1, 0.7)
+		MeshKit.add(hand, MeshKit.rounded_box(Vector3(0.075, 0.09, 0.04), 0.02, 2), skin, Vector3(0, -0.035, 0))
+		MeshKit.add(hand, MeshKit.rounded_box(Vector3(0.07, 0.05, 0.035), 0.016, 2), skin, Vector3(0, -0.09, 0.004))
+		var th := MeshKit.add(hand, MeshKit.capsule(0.014, 0.06), skin, Vector3(0.0, -0.035, -0.03))
+		th.rotation = Vector3(0.6, 0, sx * 0.2)
+		# --- legs
 		var hip := _joint("hip_" + side, pelvis, Vector3(sx * 0.095 * b, -0.07, 0))
 		MeshKit.add(hip, MeshKit.capsule(0.08 * minf(b, 1.15), 0.46), pants, Vector3(0, -0.2, 0))
 		var knee := _joint("knee_" + side, hip, Vector3(0, -0.41, 0))
-		MeshKit.add(knee, MeshKit.capsule(0.066, 0.44), pants if not appearance.get("skirt", false) else skin, Vector3(0, -0.19, 0))
+		var leg_m: Material = pants if not appearance.get("skirt", false) else skin
+		MeshKit.add(knee, MeshKit.sphere(0.068, 10), leg_m, Vector3.ZERO)
+		MeshKit.add(knee, MeshKit.capsule(0.066, 0.44), leg_m, Vector3(0, -0.19, 0))
 		var foot := _joint("foot_" + side, knee, Vector3(0, -0.4, 0))
-		MeshKit.add(foot, MeshKit.rounded_box(Vector3(0.11, 0.08, 0.25), 0.035, 2), shoes, Vector3(0, -0.035, -0.05))
+		MeshKit.add(foot, MeshKit.rounded_box(Vector3(0.115, 0.03, 0.26), 0.012, 2), sole, Vector3(0, -0.062, -0.05))
+		MeshKit.add(foot, MeshKit.rounded_box(Vector3(0.105, 0.07, 0.22), 0.035, 3), shoe_up, Vector3(0, -0.025, -0.035))
+		MeshKit.add(foot, MeshKit.sphere(0.052, 10, 0.7), shoe_up, Vector3(0, -0.035, -0.135)).scale = Vector3(1.0, 1.0, 0.9)
 	for n in JOINTS:
 		_cur[n] = Vector3.ZERO
 
@@ -106,87 +160,138 @@ func _joint(n: String, parent: Node3D, pos: Vector3) -> Node3D:
 	return node
 
 
+func _pivot(parent: Node3D, pos: Vector3) -> Node3D:
+	var n := Node3D.new()
+	n.position = pos
+	parent.add_child(n)
+	return n
+
+
 func _build_head(head: Node3D, skin: Material, hair_c: Material, a: Dictionary) -> void:
 	var r := 0.155
-	MeshKit.add(head, MeshKit.sphere(r, 20), skin, Vector3(0, 0.13, 0)).scale = Vector3(0.95, 1.05, 0.98)
+	var skin_c := Color(a.get("skin", "#e9bb98"))
+	MeshKit.add(head, MeshKit.sphere(r, 24), skin, Vector3(0, 0.13, 0)).scale = Vector3(0.96, 1.04, 0.98)
+	MeshKit.add(head, MeshKit.sphere(r * 0.82, 20), skin, Vector3(0, 0.075, -0.025)).scale = Vector3(0.95, 0.85, 0.95)   # jaw / chin
 	for sx in [-1, 1]:
-		MeshKit.add(head, MeshKit.sphere(0.035, 8), skin, Vector3(sx * 0.148, 0.12, 0.01)).scale = Vector3(0.6, 1, 0.9)
-	MeshKit.add(head, MeshKit.sphere(0.03, 10), skin, Vector3(0, 0.11, -0.155)).scale = Vector3(1, 1.1, 1.2)
-	var white := Mats.color(Color(0.98, 0.98, 0.98), 0.3)
-	var pupil := Mats.color(Color(0.08, 0.06, 0.05), 0.2)
+		MeshKit.add(head, MeshKit.sphere(0.036, 10), skin, Vector3(sx * 0.148, 0.12, 0.012)).scale = Vector3(0.55, 1, 0.85)
+		MeshKit.add(head, MeshKit.sphere(0.022, 8), Humanoid.cmat(skin_c.lerp(Color(1.0, 0.45, 0.45), 0.4), 0.7, 0.0), Vector3(sx * 0.088, 0.095, -0.118)).scale = Vector3(1.2, 0.8, 0.5)
+	MeshKit.add(head, MeshKit.sphere(0.03, 12), Humanoid.cmat(skin_c.darkened(0.06), 0.55, 0.2), Vector3(0, 0.115, -0.158)).scale = Vector3(0.95, 1.15, 1.25)
+	# eyes: sclera + iris + pupil + highlight, on pivots the face animation can scale (blink)
+	var hseed := int(Color(a.get("hair_color", "#333333")).h * 100.0 + Color(a.get("skin", "#888888")).v * 50.0)
+	var iris_c: Color = [Color(0.36, 0.22, 0.12), Color(0.2, 0.45, 0.75), Color(0.25, 0.5, 0.3), Color(0.45, 0.32, 0.18)][hseed % 4]
 	var eyes: Array = []
 	var brows: Array = []
 	for sx in [-1, 1]:
-		var e := MeshKit.add(head, MeshKit.sphere(0.028, 10), white, Vector3(sx * 0.055, 0.15, -0.135))
-		e.scale = Vector3(1, 1.15, 0.6)
-		MeshKit.add(e, MeshKit.sphere(0.016, 8), pupil, Vector3(0, -0.002, -0.017))
-		eyes.append(e)
-		var br := MeshKit.add(head, MeshKit.rounded_box(Vector3(0.055, 0.012, 0.012), 0.005, 1), hair_c, Vector3(sx * 0.058, 0.195, -0.14))
-		brows.append(br)
-	var mouth := MeshKit.add(head, MeshKit.rounded_box(Vector3(0.06, 0.012, 0.012), 0.005, 1), Mats.color(Color(0.45, 0.15, 0.15), 0.5), Vector3(0, 0.06, -0.148))
+		var ep := _pivot(head, Vector3(sx * 0.056, 0.152, -0.132))
+		ep.scale = Vector3(1, 1.15, 1)
+		MeshKit.add(ep, MeshKit.sphere(0.031, 12), Humanoid.cmat(Color(0.99, 0.99, 0.99), 0.25, 0.0), Vector3.ZERO).scale = Vector3(1, 1, 0.6)
+		MeshKit.add(ep, MeshKit.sphere(0.019, 10), Humanoid.cmat(iris_c, 0.3, 0.0), Vector3(0, -0.002, -0.015)).scale = Vector3(1, 1, 0.5)
+		MeshKit.add(ep, MeshKit.sphere(0.0105, 8), Humanoid.cmat(Color(0.03, 0.03, 0.04), 0.15, 0.0), Vector3(0, -0.002, -0.0235)).scale = Vector3(1, 1, 0.5)
+		MeshKit.add(ep, MeshKit.sphere(0.0045, 6), Mats.unshaded(Color(1, 1, 1)), Vector3(0.006, 0.006, -0.027))
+		eyes.append(ep)
+		var bp := _pivot(head, Vector3(sx * 0.058, 0.195, -0.142))
+		MeshKit.add(bp, MeshKit.capsule(0.012, 0.064), hair_c, Vector3.ZERO, Vector3(0, 0, 90))
+		brows.append(bp)
+	var mouth := _pivot(head, Vector3(0, 0.062, -0.146))
+	MeshKit.add(mouth, MeshKit.capsule(0.011, 0.062), Humanoid.cmat(Color(0.22, 0.05, 0.07), 0.5, 0.0), Vector3.ZERO, Vector3(0, 0, 90))
 	face = {"eyes": eyes, "brows": brows, "mouth": mouth}
-	var style: String = a.get("hair", "short")
-	match style:
-		"short", "messy", "slick":
-			var cap := MeshKit.add(head, MeshKit.sphere(r * 1.05, 18, 0.75), hair_c, Vector3(0, 0.19, 0.015))
-			cap.scale = Vector3(1.0, 1.0, 1.02)
-			if style == "messy":
-				var rng := RandomNumberGenerator.new()
-				rng.seed = 11
-				for i in 7:
-					MeshKit.add(head, MeshKit.sphere(0.045, 8), hair_c, Vector3(rng.randf_range(-0.1, 0.1), 0.27 + rng.randf() * 0.03, rng.randf_range(-0.08, 0.1)))
-			if style == "slick":
-				MeshKit.add(head, MeshKit.rounded_box(Vector3(0.3, 0.05, 0.22), 0.025, 2), hair_c, Vector3(0, 0.26, 0.02), Vector3(-6, 0, 0))
-		"bun", "ponytail", "long":
-			MeshKit.add(head, MeshKit.sphere(r * 1.07, 18, 0.8), hair_c, Vector3(0, 0.185, 0.02))
-			if style == "bun":
-				MeshKit.add(head, MeshKit.sphere(0.07, 12), hair_c, Vector3(0, 0.3, 0.09))
-			elif style == "ponytail":
-				var pt := MeshKit.add(head, MeshKit.capsule(0.045, 0.28), hair_c, Vector3(0, 0.12, 0.18), Vector3(20, 0, 0))
-				accessories["ponytail"] = pt
-			else:
-				MeshKit.add(head, MeshKit.rounded_box(Vector3(0.3, 0.34, 0.12), 0.05, 2), hair_c, Vector3(0, 0.05, 0.09))
-		"curly":
-			var rng2 := RandomNumberGenerator.new()
-			rng2.seed = 5
-			for i in 16:
-				var ang := rng2.randf() * TAU
-				var el := rng2.randf_range(0.0, 1.2)
-				var p := Vector3(cos(ang) * cos(el), sin(el), sin(ang) * cos(el)) * (r * 1.05)
-				if p.z < -0.08 and p.y < 0.08:
-					p.z = -0.02
-				MeshKit.add(head, MeshKit.sphere(0.065, 10), hair_c, Vector3(p.x, 0.15 + p.y, p.z + 0.02))
-		"bald":
-			MeshKit.add(head, MeshKit.sphere(r * 1.02, 16, 0.5), hair_c, Vector3(0, 0.12, 0.04)).scale = Vector3(1.0, 0.6, 0.9)
-			MeshKit.add(head, MeshKit.sphere(r * 0.96, 16), skin, Vector3(0, 0.15, 0))
+	_build_hair(head, hair_c, r, String(a.get("hair", "short")))
 	match a.get("beard", ""):
 		"mustache":
-			var m := MeshKit.add(head, MeshKit.capsule(0.018, 0.11), hair_c, Vector3(0, 0.085, -0.152), Vector3(0, 0, 90))
-			m.scale = Vector3(1, 1, 0.6)
+			for sx in [-1, 1]:
+				var m := MeshKit.add(head, MeshKit.capsule(0.017, 0.07), hair_c, Vector3(sx * 0.028, 0.085, -0.155))
+				m.rotation = Vector3(0, 0, sx * 1.25)
 		"beard":
-			MeshKit.add(head, MeshKit.sphere(0.12, 14, 0.7), hair_c, Vector3(0, 0.05, -0.06)).scale = Vector3(1.05, 0.9, 1.0)
+			MeshKit.add(head, MeshKit.sphere(0.13, 16, 0.75), hair_c, Vector3(0, 0.045, -0.055)).scale = Vector3(1.05, 0.95, 1.0)
+			for sx in [-1, 1]:
+				MeshKit.add(head, MeshKit.capsule(0.015, 0.06), hair_c, Vector3(sx * 0.028, 0.088, -0.158), Vector3(0, 0, sx * 70))
 	if a.get("glasses", false):
-		var fm := Mats.color(Color(0.1, 0.1, 0.12), 0.3, 0.4)
+		var fm := Humanoid.cmat(Color(0.08, 0.08, 0.1), 0.3, 0.0, 0.4)
+		var lens := StandardMaterial3D.new()
+		lens.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		lens.albedo_color = Color(0.75, 0.88, 1.0, 0.18)
+		lens.roughness = 0.05
 		for sx in [-1, 1]:
-			MeshKit.add(head, MeshKit.torus(0.026, 0.036, 14), fm, Vector3(sx * 0.055, 0.15, -0.15), Vector3(90, 0, 0))
-		MeshKit.add(head, MeshKit.rounded_box(Vector3(0.04, 0.008, 0.008), 0.003, 1), fm, Vector3(0, 0.155, -0.152))
+			MeshKit.add(head, MeshKit.torus(0.028, 0.037, 16), fm, Vector3(sx * 0.056, 0.152, -0.158), Vector3(90, 0, 0))
+			MeshKit.add(head, MeshKit.cylinder(0.03, 0.002, 16), lens, Vector3(sx * 0.056, 0.152, -0.158), Vector3(90, 0, 0), false)
+			MeshKit.add(head, MeshKit.rounded_box(Vector3(0.006, 0.006, 0.14), 0.002, 1), fm, Vector3(sx * 0.093, 0.155, -0.09))
+		MeshKit.add(head, MeshKit.rounded_box(Vector3(0.036, 0.007, 0.007), 0.003, 1), fm, Vector3(0, 0.158, -0.162))
 	# disguise moustache (hidden until worn) + cosmetic slots
-	var dm := MeshKit.add(head, MeshKit.capsule(0.03, 0.16), Mats.color(Color(0.15, 0.08, 0.05), 0.8), Vector3(0, 0.085, -0.158), Vector3(0, 0, 90))
+	var dm := Node3D.new()
+	head.add_child(dm)
+	for sx in [-1, 1]:
+		var piece := MeshKit.add(dm, MeshKit.capsule(0.03, 0.12), Humanoid.cmat(Color(0.15, 0.08, 0.05), 0.8, 0.0), Vector3(sx * 0.04, 0.085, -0.165))
+		piece.rotation = Vector3(0, 0, sx * 1.2)
 	dm.visible = false
 	accessories["disguise"] = dm
 	var hat := Node3D.new()
 	head.add_child(hat)
-	MeshKit.add(hat, MeshKit.cylinder(0.24, 0.02, 20), Mats.color(Color(0.1, 0.1, 0.1), 0.6), Vector3(0, 0.27, 0))
-	MeshKit.add(hat, MeshKit.cylinder(0.14, 0.17, 20, 0.13), Mats.color(Color(0.1, 0.1, 0.1), 0.6), Vector3(0, 0.36, 0))
-	MeshKit.add(hat, MeshKit.cylinder(0.142, 0.035, 20), Mats.color(Color(0.7, 0.1, 0.1), 0.6), Vector3(0, 0.3, 0))
+	MeshKit.add(hat, MeshKit.cylinder(0.24, 0.02, 24), Humanoid.cmat(Color(0.1, 0.1, 0.1), 0.6), Vector3(0, 0.27, 0))
+	MeshKit.add(hat, MeshKit.cylinder(0.14, 0.17, 24, 0.13), Humanoid.cmat(Color(0.1, 0.1, 0.1), 0.6), Vector3(0, 0.36, 0))
+	MeshKit.add(hat, MeshKit.cylinder(0.142, 0.035, 24), Humanoid.cmat(Color(0.7, 0.1, 0.1), 0.6), Vector3(0, 0.3, 0))
 	hat.visible = false
 	accessories["chapeau"] = hat
 	var sun := Node3D.new()
 	head.add_child(sun)
 	for sx in [-1, 1]:
-		MeshKit.add(sun, MeshKit.sphere(0.035, 10, 0.7), Mats.color(Color(0.02, 0.02, 0.02), 0.05, 0.6), Vector3(sx * 0.055, 0.15, -0.155))
+		MeshKit.add(sun, MeshKit.sphere(0.036, 12, 0.7), Humanoid.cmat(Color(0.02, 0.02, 0.02), 0.05, 0.5, 0.6), Vector3(sx * 0.056, 0.152, -0.162))
+	MeshKit.add(sun, MeshKit.rounded_box(Vector3(0.04, 0.008, 0.008), 0.003, 1), Humanoid.cmat(Color(0.02, 0.02, 0.02), 0.2), Vector3(0, 0.16, -0.165))
 	sun.visible = false
 	accessories["lunettes"] = sun
+
+
+## Hair with volume: a skull cap plus clumps, fringe and style-specific shapes.
+func _build_hair(head: Node3D, hair_c: Material, r: float, style: String) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(style) + int(r * 1000)
+	var cap_needed := style != "bald" and style != "curly"
+	if cap_needed:
+		MeshKit.add(head, MeshKit.sphere(r * 1.07, 22, 0.78), hair_c, Vector3(0, 0.19, 0.018)).scale = Vector3(1.0, 1.0, 1.03)
+		# back of the head + sides down to the ears
+		MeshKit.add(head, MeshKit.sphere(r * 1.02, 18), hair_c, Vector3(0, 0.14, 0.035)).scale = Vector3(1.0, 0.95, 0.95)
+	match style:
+		"short", "slick", "messy":
+			if style != "slick":
+				for i in 3:
+					var x := (i - 1) * 0.06
+					var f := MeshKit.add(head, MeshKit.sphere(0.055, 12), hair_c, Vector3(x, 0.235 - absf(x) * 0.2, -0.095 + absf(x) * 0.2))
+					f.scale = Vector3(1.25, 0.42, 0.8)
+			else:
+				MeshKit.add(head, MeshKit.rounded_box(Vector3(0.3, 0.06, 0.24), 0.03, 2), hair_c, Vector3(0, 0.262, 0.01), Vector3(-8, 0, 0))
+				MeshKit.add(head, MeshKit.capsule(0.03, 0.2), hair_c, Vector3(-0.06, 0.29, 0.0), Vector3(90, 0, 0))
+			if style == "messy":
+				for i in 10:
+					var a := rng.randf() * TAU
+					var spike := MeshKit.add(head, MeshKit.capsule(0.022, 0.1), hair_c, Vector3(cos(a) * 0.08, 0.27 + rng.randf() * 0.03, sin(a) * 0.08 + 0.02))
+					spike.rotation = Vector3(sin(a) * 0.9, 0, -cos(a) * 0.9)
+		"bun", "ponytail", "long":
+			for i in 4:
+				var x := (i - 1.5) * 0.05
+				MeshKit.add(head, MeshKit.sphere(0.05, 10), hair_c, Vector3(x, 0.24, -0.105 + absf(x) * 0.3)).scale = Vector3(1.0, 0.55, 0.85)
+			for sx in [-1, 1]:
+				MeshKit.add(head, MeshKit.capsule(0.035, 0.16 if style != "long" else 0.3), hair_c, Vector3(sx * 0.135, 0.12 if style != "long" else 0.05, -0.02))
+			if style == "bun":
+				MeshKit.add(head, MeshKit.sphere(0.075, 14), hair_c, Vector3(0, 0.31, 0.09))
+				MeshKit.add(head, MeshKit.torus(0.06, 0.075, 14), Humanoid.cmat(Color(0.85, 0.2, 0.3), 0.5), Vector3(0, 0.29, 0.07), Vector3(40, 0, 0))
+			elif style == "ponytail":
+				MeshKit.add(head, MeshKit.torus(0.025, 0.04, 10), Humanoid.cmat(Color(0.2, 0.4, 0.9), 0.5), Vector3(0, 0.2, 0.16), Vector3(70, 0, 0))
+				var pt := MeshKit.add(head, MeshKit.capsule(0.048, 0.3), hair_c, Vector3(0, 0.1, 0.2), Vector3(20, 0, 0))
+				accessories["ponytail"] = pt
+			else:
+				MeshKit.add(head, MeshKit.rounded_box(Vector3(0.31, 0.38, 0.13), 0.06, 3), hair_c, Vector3(0, 0.04, 0.095))
+		"curly":
+			for i in 34:
+				var ang := rng.randf() * TAU
+				var el := rng.randf_range(-0.25, 1.3)
+				var p := Vector3(cos(ang) * cos(el), sin(el), sin(ang) * cos(el)) * (r * 1.08)
+				if p.z < -0.06 and p.y < 0.07:
+					continue
+				MeshKit.add(head, MeshKit.sphere(0.06 + rng.randf() * 0.015, 10), hair_c, Vector3(p.x, 0.15 + p.y, p.z + 0.02))
+		"bald":
+			MeshKit.add(head, MeshKit.sphere(r * 1.0, 18), Humanoid.cmat(Color(look.get("skin", "#e9bb98")).lightened(0.05), 0.35, 0.4), Vector3(0, 0.15, 0.005))
+			for i in 9:
+				var ang2 := PI * 0.15 + i * PI * 0.7 / 8.0
+				MeshKit.add(head, MeshKit.sphere(0.04, 8), hair_c, Vector3(cos(ang2) * 0.15, 0.13, sin(ang2) * 0.12 + 0.02)).scale = Vector3(1, 0.8, 1)
 
 
 func set_accessory(id: String, on: bool) -> void:
@@ -456,14 +561,14 @@ func _face(delta: float) -> void:
 			brow_rot = 0.25
 		"surprised", "panic":
 			brow_y = 0.02
-			mouth_scale = Vector3(0.6, 3.5, 1.0)
+			mouth_scale = Vector3(0.6, 2.4, 1.0)
 		"laugh", "dance":
-			mouth_scale = Vector3(1.3, 3.0, 1.0)
+			mouth_scale = Vector3(1.2, 2.0, 1.0)
 		"embarrassed", "disgust":
 			brow_rot = -0.35
 			mouth_scale = Vector3(0.8, 0.8, 1.0)
 	if talking > 0.0 and emote == "":
-		mouth_scale.y = 1.0 + absf(sin(_t * 14.0)) * 2.5
+		mouth_scale.y = 1.0 + absf(sin(_t * 14.0)) * 1.4
 	for i in 2:
 		var br: Node3D = face.brows[i]
 		var sx := -1.0 if i == 0 else 1.0

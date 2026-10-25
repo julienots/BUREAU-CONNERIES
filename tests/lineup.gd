@@ -25,6 +25,7 @@ func _ready() -> void:
 		l.font_size = 40
 		l.outline_size = 10
 		l.pixel_size = 0.003
+		l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 		h.add_child(l)
 	var cam := Camera3D.new()
 	add_child(cam)
@@ -33,4 +34,9 @@ func _ready() -> void:
 	cam.look_at(Vector3(-13.2, 1.0, 5.0))
 	await get_tree().create_timer(2.0).timeout
 	get_viewport().get_texture().get_image().save_png(out)
+	cam.fov = 30
+	cam.position = Vector3(-14.4, 1.62, 7.4)
+	cam.look_at(Vector3(-14.4, 1.45, 5.0))
+	await get_tree().create_timer(0.5).timeout
+	get_viewport().get_texture().get_image().save_png(out.replace(".png", "_close.png"))
 	get_tree().quit()

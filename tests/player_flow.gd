@@ -182,10 +182,10 @@ func _run() -> void:
 	s.boss_brain.sus.evidence.clear()
 	s.boss_brain.confront_cooldown = 60.0
 	s.boss_brain._switch("office")
-	await wait(0.5)
 	s.emit_sound(Vector3(-3, 0.5, -11), 85.0, "boxes_crash", "", "")
+	var heard := not s.boss_brain.stimulus.is_empty()
 	await wait(1.0)
-	check("director investigates a loud noise", s.boss_brain.state in ["investigate", "search"] or not s.boss_brain.stimulus.is_empty(), "state=%s" % s.boss_brain.state)
+	check("director hears a loud noise and goes to investigate", heard and (s.boss_brain.state in ["investigate", "search", "confront"]), "heard=%s state=%s" % [heard, s.boss_brain.state])
 	check("hearing attenuated by walls", Perception.perceived(s.world, Vector3(-3, 0, -6.5), Vector3(-3, 0.6, -11), 60.0) < Perception.perceived(s.world, Vector3(-3, 0, -10.5), Vector3(-3, 0.6, -11), 60.0),
 		"behind wall=%.1f in room=%.1f" % [Perception.perceived(s.world, Vector3(-3, 0, -6.5), Vector3(-3, 0.6, -11), 60.0), Perception.perceived(s.world, Vector3(-3, 0, -10.5), Vector3(-3, 0.6, -11), 60.0)])
 	# --- vision: walls block, glass does not
