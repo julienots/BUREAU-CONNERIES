@@ -133,11 +133,13 @@ func spawn_cast(humans: Dictionary, npc_limit: int) -> void:
 	if boss_human:
 		human_ids.append("boss")
 		director.nick = humans.boss.get("name", bd.name)
-	elif is_authority():
+		director.is_player = true
+	if is_authority():
 		boss_brain = DirectorBrain.new()
 		boss_brain.name = "DirectorBrain"
 		add_child(boss_brain)
 		boss_brain.setup(director, self, profile, seed_value + 11)
+		boss_brain.observer = boss_human
 	all_ids.append("boss")
 	for c in cw:
 		var traits: Dictionary = Data.traits_for(c.archetype).duplicate()
@@ -376,12 +378,20 @@ func recent_act_in_zone(zone: String, window: float) -> Dictionary:
 
 # ------------------------------------------------------------------ notifications / speech
 func notify(actor: Node, text: String, kind := "info") -> void:
-	if actor == null:
+	if actor == null or text.strip_edges() == "":
 		return
 	if actor == player:
 		notified.emit(text, kind)
 	elif net and actor is Character:
 		net.send_notify((actor as Character).id, text, kind)
+
+
+## Private note for the (human) director's notebook.
+func director_note(text: String) -> void:
+	if net:
+		net.send_director_note_text(text)
+	elif director == player:
+		notified.emit(text, "event")
 
 
 func notify_all(text: String, kind := "info") -> void:
@@ -440,7 +450,7 @@ const SFX_KIND := {"door_slam": "slam", "boxes_crash": "crash", "chair_fall": "c
 func emit_sound(pos: Vector3, loud: float, sfx: String, actor_id: String, source_ent: String, kind := "") -> void:
 	if sfx != "":
 		SoundFx.play_at(sfx, pos, loud)
-		if net and is_authority():
+		if net and is_authority() and kind != "footstep":
 			net.broadcast_sound(sfx, pos, loud)
 	if not is_authority() or now() < quiet_until:
 		return
@@ -1723,6 +1733,12 @@ func _resolve_interrogation(choice: String, params: Dictionary) -> void:
 				else:
 					outcome = "sanctioned"
 	var info := {"who": iv.who, "outcome": outcome, "act_id": iv.act_id, "guilty": guilty, "choice": choice}
+	if net and net.human_director():
+		# multiplayer: a human director decides the verdict from the answer
+		net._ask_verdict(info)
+		if who:
+			notify(who, "Le directeur délibère…", "warn")
+		return
 	if outcome == "sanctioned":
 		info.merge(_sanction(who, act, guilty))
 	if boss_brain:

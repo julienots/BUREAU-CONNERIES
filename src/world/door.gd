@@ -12,6 +12,7 @@ var _was_open := false
 var display := "Porte"
 var swing := 1.0
 var _zone_a := ""
+var net_amount := -1.0
 
 
 func setup(w: float, wood: Material, swing_dir := 1.0) -> void:
@@ -62,6 +63,8 @@ func _physics_process(delta: float) -> void:
 				_auto_t = 1.2
 				target = 1.0
 				break
+	if Game.session and not Game.session.is_authority() and net_amount >= 0.0:
+		target = net_amount
 	var prev := amount
 	amount = move_toward(amount, target, delta * 2.2)
 	if prev != amount:
@@ -69,7 +72,7 @@ func _physics_process(delta: float) -> void:
 	var open_now := amount > 0.05
 	if open_now != _was_open:
 		_was_open = open_now
-		if Game.session and Game.session.is_authority():
+		if Game.session and Game.session.is_authority():   # clients receive the sound from the server
 			if open_now:
 				Game.session.emit_sound(interact_point(), 22.0, "door_open", "", ent_id())
 			elif not get_meta("slammed", false):

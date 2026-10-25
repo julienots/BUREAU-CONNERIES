@@ -636,7 +636,7 @@ func _navigation() -> void:
 	nm.geometry_source_group_name = Layers.GROUP_NAV
 	nm.cell_size = 0.1
 	nm.cell_height = 0.1
-	nm.agent_radius = 0.32
+	nm.agent_radius = 0.3
 	nm.agent_height = 1.7
 	nm.agent_max_climb = 0.2
 	nm.agent_max_slope = 30.0

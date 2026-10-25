@@ -74,8 +74,25 @@ func home_distance() -> float:
 	return global_position.distance_to(home.origin)
 
 
+var net_xform := Transform3D()
+var _has_net := false
+
+
+func apply_net(t: Transform3D) -> void:
+	net_xform = t
+	_has_net = true
+
+
 func _physics_process(delta: float) -> void:
 	if remote:
+		if _has_net:
+			var t := global_transform
+			if t.origin.distance_to(net_xform.origin) > 2.5:
+				global_transform = net_xform
+			else:
+				t.origin = t.origin.lerp(net_xform.origin, clampf(delta * 15.0, 0.0, 1.0))
+				t.basis = t.basis.slerp(net_xform.basis.orthonormalized(), clampf(delta * 15.0, 0.0, 1.0))
+				global_transform = t
 		return
 	_prev_vel = linear_velocity
 	if _roll_player:
@@ -306,9 +323,9 @@ func perform(actor: Node, action: String, params: Dictionary) -> Dictionary:
 func on_sat(by: Node) -> void:
 	occupant = by.char_id()
 	freeze = true
-	if seat_low and Game.session:
+	if seat_low and Game.session and Game.session.is_authority():
 		Game.session.low_seat_triggered(by, self)
-	if cushion_id != "":
+	if cushion_id != "" and Game.session and Game.session.is_authority():
 		var cush := Game.session.world.ent(cushion_id) as Prop
 		cushion_id = ""
 		if cush:

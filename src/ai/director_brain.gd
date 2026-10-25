@@ -33,6 +33,8 @@ var confront_cooldown := 0.0
 var reports_received := 0
 var questioned: Dictionary = {}       # act_id -> true
 var present_at_meeting: Dictionary = {}
+## Human director (multiplayer): perception and ledger only, no autonomous decisions.
+var observer := false
 
 
 func setup(ch: Character, session: Node, profile: String, seed: int) -> void:
@@ -48,7 +50,7 @@ func setup(ch: Character, session: Node, profile: String, seed: int) -> void:
 
 
 func _physics_process(delta: float) -> void:
-	if c == null or s == null or not s.running or not s.director_ai_enabled():
+	if c == null or s == null or not s.running:
 		return
 	timer -= delta
 	confront_cooldown -= delta
@@ -57,6 +59,8 @@ func _physics_process(delta: float) -> void:
 	if _scan_t <= 0.0:
 		_scan_t = 0.2
 		_scan(0.2)
+	if observer:
+		return
 	_tick -= delta
 	if _tick <= 0.0:
 		_tick = 0.25
@@ -143,6 +147,17 @@ func _badness(e: Character, my_zone: String) -> float:
 
 func _caught(e: Character, bad: float) -> void:
 	var now: float = s.now()
+	if observer:
+		var cur: Dictionary = e.action.get("def", {})
+		if cur.get("prank", false):
+			var a0: Dictionary = s.interrupt_and_commit(e)
+			if not a0.is_empty():
+				sus.set_confirmed(e.id, int(a0.id), now)
+				s.director_note("Tu as surpris %s : %s" % [e.nick, s.act_description(a0).replace("On vous soupçonne de : ", "")])
+		else:
+			sus.add(e.id, 10.0 + bad * 22.0, "seen", -1, "boss", now)
+			s.director_note("%s a un comportement suspect." % e.nick)
+		return
 	if e.action.size() > 0 and e.action.get("def", {}).get("prank", false):
 		# caught red-handed: the act is interrupted and confirmed
 		var act: Dictionary = s.interrupt_and_commit(e)
@@ -217,6 +232,16 @@ func _scan_anomalies() -> void:
 
 
 func _on_anomaly(e: Node, issue: String) -> void:
+	if observer:
+		s.director_note("Anomalie repérée : %s (%s)" % [e.display_name(), s.world.zone_name(s.world.zone_at(e.global_position))])
+		if issue == "caricature":
+			s.npc_reaction(c, "saw_caricature", {"by": String((e as Device).state.get("by", "")) if e is Device else ""})
+		var a1: Dictionary = s.act_for_entity(e.ent_id())
+		if not a1.is_empty():
+			for who in mem.seen_near(a1.zone, float(a1.time), 30.0):
+				if s.is_employee(who):
+					sus.add(who, 7.0, "near", int(a1.id), "boss", s.now())
+		return
 	c.look_at_point(e.interact_point() if e.has_method("interact_point") else e.global_position)
 	if issue == "caricature":
 		_bark("boss_caricature", "angry")
@@ -266,6 +291,8 @@ const INTERESTING := ["slam", "fart", "crash", "break", "papers", "printer", "bu
 
 
 func on_hear(ev: Dictionary, perceived: float) -> void:
+	if observer:
+		return
 	var kind: String = ev.kind
 	var threshold := 34.0 / float(prof.get("hearing", 1.0))
 	if kind == "footstep":
@@ -299,6 +326,10 @@ func on_witness(act: Dictionary, info: Dictionary) -> void:
 	mem.remember_act(act, info.id, info.desc, info.conf, now)
 	if info.id == "" or not s.is_employee(info.id):
 		return
+	if observer:
+		sus.add(info.id, 25.0 * float(info.conf) + 8.0 * int(act.sev), "seen", int(act.id), "boss", now)
+		s.director_note("Tu as vu %s : %s" % [s.char_name(info.id), s.act_description(act).replace("On vous soupçonne de : ", "")])
+		return
 	if float(info.conf) > 0.6:
 		sus.set_confirmed(info.id, int(act.id), now)
 		_bark("boss_caught", "angry")
@@ -313,6 +344,8 @@ func on_witness(act: Dictionary, info: Dictionary) -> void:
 func on_testimony(witness: String, accused: String, act_id: int, kind: String, now: float) -> void:
 	reports_received += 1
 	listening_until = now + 3.0
+	if observer:
+		s.director_note("%s accuse %s." % [s.char_name(witness), s.char_name(accused)])
 	if accused == "" or not s.is_employee(accused):
 		return
 	var act: Dictionary = s.act_by_id(act_id)
@@ -817,6 +850,8 @@ func distract(by: String, dur: float) -> void:
 
 
 func _bark(cat: String, emotion: String) -> void:
+	if observer:
+		return
 	var now: float = s.now()
 	if now - _last_bark < 3.0:
 		return

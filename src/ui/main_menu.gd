@@ -112,8 +112,7 @@ func _solo() -> void:
 
 
 func _online(code: String) -> void:
-	var lobby: GDScript = load("res://src/net/lobby_ui.gd")
-	lobby.call("open", ui, code)
+	LobbyUI.open(ui, code)
 
 
 func _join_code() -> void:

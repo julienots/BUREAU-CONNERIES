@@ -247,8 +247,91 @@ func arrived(tol := 0.6) -> bool:
 
 
 # ------------------------------------------------------------------ physics
+# --- network replication
+var net_pos := Vector3.INF          # replica: latest server position
+var net_yaw := 0.0
+var net_flags: Dictionary = {}
+var net_drive := Vector3.INF        # server: position reported by the owning client
+var net_drive_yaw := 0.0
+
+
+func apply_net(pos: Vector3, yaw: float, flags: Dictionary) -> void:
+	net_pos = pos
+	net_yaw = yaw
+	net_flags = flags
+
+
+## Compact animation/state flags sent in snapshots.
+func net_state() -> Dictionary:
+	var f := {}
+	if seated_on:
+		f["s"] = seated_on.ent_id()
+	if held:
+		f["h"] = held.ent_id()
+	if want_crouch:
+		f["c"] = 1
+	if humanoid.typing:
+		f["t"] = 1
+	if action.size() > 0:
+		f["b"] = 1
+	if humanoid.emote != "":
+		f["e"] = humanoid.emote
+	if humanoid.fall > 0.0:
+		f["f"] = snappedf(humanoid.fall, 0.01)
+		f["fd"] = humanoid.fall_dir
+	if humanoid.getting_up > 0.0:
+		f["g"] = snappedf(humanoid.getting_up, 0.01)
+	if humanoid.stumble > 0.0:
+		f["st"] = snappedf(humanoid.stumble, 0.01)
+	if humanoid.look_target != Vector3.INF:
+		f["l"] = humanoid.look_target
+	if is_disguised():
+		f["d"] = 1
+	return f
+
+
+func _remote_update(delta: float) -> void:
+	if net_pos == Vector3.INF:
+		return
+	var prev := global_position
+	if global_position.distance_to(net_pos) > 3.0:
+		global_position = net_pos
+	else:
+		global_position = global_position.lerp(net_pos, clampf(delta * 12.0, 0.0, 1.0))
+	rotation.y = lerp_angle(rotation.y, net_yaw, clampf(delta * 12.0, 0.0, 1.0))
+	var f := net_flags
+	humanoid.sit = move_toward(humanoid.sit, 1.0 if f.has("s") else 0.0, delta * 3.0)
+	humanoid.crouch = move_toward(humanoid.crouch, 1.0 if f.has("c") else 0.0, delta * 4.0)
+	humanoid.carrying = f.has("h")
+	humanoid.typing = f.has("t")
+	humanoid.busy = f.has("b") and not f.has("t")
+	var e: String = f.get("e", "")
+	if e != humanoid.emote:
+		humanoid.emote = e
+		humanoid.emote_t = 0.0
+	humanoid.fall = float(f.get("f", 0.0))
+	humanoid.fall_dir = float(f.get("fd", 1.0))
+	humanoid.getting_up = float(f.get("g", 0.0))
+	humanoid.stumble = float(f.get("st", 0.0))
+	humanoid.look_target = f.get("l", Vector3.INF)
+	humanoid.set_accessory("disguise", f.has("d"))
+	var moved := Vector2(global_position.x - prev.x, global_position.z - prev.z).length()
+	var hspeed := moved / maxf(delta, 0.0001)
+	var stride := lerpf(0.68, 1.05, clampf((hspeed - 2.0) / 1.5, 0, 1))
+	var ph := humanoid.phase
+	humanoid.phase += moved / stride * PI
+	if floor(ph / PI) != floor(humanoid.phase / PI) and hspeed > 0.3 and humanoid.sit < 0.5:
+		_footstep(hspeed)
+	humanoid.speed = lerpf(humanoid.speed, hspeed * (1.0 - humanoid.sit), 0.25)
+	humanoid.talking = maxf(0.0, _say_t)
+	_say_t -= delta
+	if _say_t <= 0.0 and bubble.visible:
+		bubble.visible = false
+
+
 func _physics_process(delta: float) -> void:
 	if is_remote:
+		_remote_update(delta)
 		return
 	_update_kd(delta)
 	if seated_on:
@@ -294,12 +377,27 @@ func _physics_process(delta: float) -> void:
 		spd = 0.0
 		dir = Vector3.ZERO
 	var desired := dir * spd
+	if net_drive != Vector3.INF and kd != KD.FALLING and kd != KD.FALLEN and kd != KD.GETUP:
+		# authoritative server moving a remote human: chase the reported position at a
+		# plausible speed; walls and props still collide (no teleporting through them)
+		var to := net_drive - global_position
+		to.y = 0
+		desired = to / maxf(delta, 0.001)
+		var cap := (RUN if want_run else walk_speed) * 1.35 + 0.3
+		if kd == KD.STUMBLE:
+			cap *= 0.5
+		if desired.length() > cap:
+			desired = desired.normalized() * cap
+		if to.length() > 4.0:
+			desired = Vector3.ZERO
 	if ai_driven and nav and nav.avoidance_enabled:
 		nav.velocity = desired
 		if _has_safe:
 			desired = _safe_vel
 	var hv := Vector3(velocity.x, 0, velocity.z)
 	var accel := 12.0 if desired.length() > 0.01 else 14.0
+	if net_drive != Vector3.INF:
+		accel = 200.0
 	if kd == KD.STUMBLE:
 		accel = 3.0
 	hv = hv.move_toward(desired, accel * delta)
@@ -315,6 +413,8 @@ func _physics_process(delta: float) -> void:
 	var moved := Vector2(global_position.x - before.x, global_position.z - before.z).length()
 	# facing
 	var fd := face_dir if face_dir != Vector3.ZERO else (hv if hv.length() > 0.15 else Vector3.ZERO)
+	if net_drive != Vector3.INF and face_dir == Vector3.ZERO:
+		fd = Vector3(-sin(net_drive_yaw), 0, -cos(net_drive_yaw))
 	if fd != Vector3.ZERO and kd != KD.FALLEN and kd != KD.FALLING:
 		rotation.y = lerp_angle(rotation.y, atan2(-fd.x, -fd.z), clampf(delta * 9.0, 0, 1))
 	# stuck detection for AI
