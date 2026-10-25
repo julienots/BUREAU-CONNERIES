@@ -12,6 +12,8 @@ var arm: SpringArm3D
 var _pitch_node: Node3D
 var _shake := 0.0
 var _follow := Vector3.ZERO
+var auto_follow := false          # phones: swing behind the character while walking
+var _manual_t := 0.0
 
 
 func _ready() -> void:
@@ -48,6 +50,10 @@ func add_look(dx: float, dy: float) -> void:
 	pitch = clampf(pitch - dy * (-1.0 if Settings.get_v("invert_y") else 1.0), -1.15, 0.55)
 
 
+func note_manual_look() -> void:
+	_manual_t = 1.5
+
+
 func zoom(delta: float) -> void:
 	distance = clampf(distance + delta, 1.6, 6.0)
 
@@ -70,6 +76,14 @@ func _process(delta: float) -> void:
 	var goal := target.global_position + Vector3(0, h, 0)
 	_follow = _follow.lerp(goal, clampf(delta * 12.0, 0, 1))
 	global_position = _follow
+	_manual_t -= delta
+	if auto_follow and _manual_t <= 0.0 and not target.seated_on:
+		var v := Vector2(target.velocity.x, target.velocity.z)
+		if v.length() > 0.8:
+			var want := atan2(-v.x, -v.y)
+			# only nudge when not walking towards the camera (avoids spinning)
+			if absf(angle_difference(yaw, want)) < 2.2:
+				yaw = lerp_angle(yaw, want, clampf(delta * 1.2, 0, 1))
 	rotation = Vector3(0, yaw, 0)
 	_pitch_node.rotation.x = pitch
 	arm.spring_length = lerpf(arm.spring_length, distance, clampf(delta * 6.0, 0, 1))

@@ -42,6 +42,8 @@ func _unhandled_input(event: InputEvent) -> void:
 				cycle(1)
 		elif event.button_index == MOUSE_BUTTON_MIDDLE:
 			rig.zoom(0.8 if rig.distance < 4.5 else -2.4)
+	if Settings.use_touch() and (event is InputEventMouseButton or event is InputEventMouseMotion):
+		return  # taps are handled by the touch UI, not as mouse clicks
 	if event.is_action_pressed("interact"):
 		if Input.mouse_mode != Input.MOUSE_MODE_CAPTURED and event is InputEventMouseButton and not Settings.use_touch():
 			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
@@ -68,7 +70,6 @@ func _physics_process(delta: float) -> void:
 		input = Input.get_vector("move_left", "move_right", "move_forward", "move_back")
 		if mobile_move.length() > 0.05:
 			input = mobile_move
-		var look := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
 		# right stick look for gamepads
 		var rx := Input.get_joy_axis(0, JOY_AXIS_RIGHT_X)
 		var ry := Input.get_joy_axis(0, JOY_AXIS_RIGHT_Y)
@@ -115,7 +116,7 @@ func _update_focus() -> void:
 		if d > reach or absf(to.y) > 1.9:
 			continue
 		var ang := 0.0 if d < 0.4 else acos(clampf(flat_f.dot(flat.normalized()), -1, 1))
-		if ang > 1.1:
+		if ang > (1.7 if Settings.use_touch() else 1.1):
 			continue
 		if session.world.count_walls(eye, p) > 0:
 			continue

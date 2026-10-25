@@ -1,20 +1,33 @@
 class_name MobileControls
 extends CanvasLayer
-## Landscape touch controls: virtual joystick (left), camera drag (right half),
-## large action buttons. Multi-touch aware.
+## Phone controls (landscape, two thumbs):
+##  - left half: floating joystick that appears under the thumb; pushing it to the edge runs
+##  - right half: drag to look around (the camera also follows automatically when walking)
+##  - big contextual ACTION button showing what it will do, with ◀ ▶ to switch action
+##  - contextual buttons: Drop / Throw only while holding something, Crouch toggle,
+##    objectives and pause in the top corner. Light vibration on actions.
 
 signal pause_requested
+signal objectives_requested
 
 var pc: PlayerController
 var root: Control
-var _stick_base: Control
-var _stick_knob: Control
+var _stick_base: Panel
+var _stick_knob: Panel
 var _stick_touch := -1
 var _look_touch := -1
 var _stick_center := Vector2.ZERO
-const R := 90.0
-var run_btn: Button
+var _rest := Vector2.ZERO
+const R := 110.0
+var action_btn: Button
+var action_l: Label
+var prev_btn: Button
+var next_btn: Button
 var crouch_btn: Button
+var drop_btn: Button
+var throw_btn: Button
+var stand_btn: Button
+var run_hint: Label
 
 
 func setup(controller: PlayerController) -> void:
@@ -25,60 +38,133 @@ func setup(controller: PlayerController) -> void:
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.theme = UiKit.theme()
 	add_child(root)
+	# joystick
 	_stick_base = Panel.new()
-	_stick_base.add_theme_stylebox_override("panel", UiKit.box(Color(1, 1, 1, 0.12), 100, 3, Color(1, 1, 1, 0.3)))
+	_stick_base.add_theme_stylebox_override("panel", UiKit.box(Color(1, 1, 1, 0.10), int(R), 4, Color(1, 1, 1, 0.35)))
 	_stick_base.size = Vector2(R * 2, R * 2)
 	_stick_base.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(_stick_base)
 	_stick_knob = Panel.new()
-	_stick_knob.add_theme_stylebox_override("panel", UiKit.box(Color(UiKit.YELLOW, 0.7), 50, 0))
-	_stick_knob.size = Vector2(76, 76)
+	_stick_knob.add_theme_stylebox_override("panel", UiKit.box(Color(UiKit.YELLOW, 0.85), 48, 0))
+	_stick_knob.size = Vector2(96, 96)
 	_stick_knob.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(_stick_knob)
-	_place_stick(Vector2(170, get_viewport().get_visible_rect().size.y - 170))
-	var grid := GridContainer.new()
-	grid.columns = 3
-	grid.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	grid.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-	grid.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	grid.offset_right = -24
-	grid.offset_bottom = -24
-	grid.add_theme_constant_override("h_separation", 12)
-	grid.add_theme_constant_override("v_separation", 12)
-	root.add_child(grid)
-	grid.add_child(_btn("Suivant", func(): pc.cycle(1)))
-	grid.add_child(_btn("Alt.", func(): pc.press_alt()))
-	grid.add_child(_btn("Lancer", func(): pc.press_throw()))
+	run_hint = UiKit.label("COURSE", 18, UiKit.YELLOW, true)
+	run_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	run_hint.visible = false
+	root.add_child(run_hint)
+	# big action button (bottom right) with labels
+	action_btn = _btn("", func(): _do(func(): pc.press_interact()), Vector2(210, 210))
+	action_btn.add_theme_stylebox_override("normal", UiKit.box(Color(UiKit.YELLOW, 0.92), 105, 4, Color(1, 1, 1, 0.6)))
+	action_btn.add_theme_stylebox_override("pressed", UiKit.box(UiKit.YELLOW.darkened(0.25), 105, 4, Color.WHITE))
+	action_btn.add_theme_stylebox_override("hover", UiKit.box(Color(UiKit.YELLOW, 0.92), 105, 4, Color(1, 1, 1, 0.6)))
+	action_btn.add_theme_stylebox_override("disabled", UiKit.box(Color(0.3, 0.3, 0.35, 0.5), 105, 3, Color(1, 1, 1, 0.2)))
+	_br(action_btn, -250, -250)
+	action_l = UiKit.label("", 22, Color.BLACK, true)
+	action_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	action_l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	action_l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	action_l.set_anchors_preset(Control.PRESET_FULL_RECT)
+	action_l.offset_left = 18
+	action_l.offset_right = -18
+	action_l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	action_l.add_theme_constant_override("outline_size", 0)
+	action_btn.add_child(action_l)
+	prev_btn = _btn("◀", func(): _do(func(): pc.cycle(-1)), Vector2(84, 84))
+	_br(prev_btn, -350, -200)
+	next_btn = _btn("▶", func(): _do(func(): pc.cycle(1)), Vector2(84, 84))
+	_br(next_btn, -250, -340)
+	# secondary buttons (right side, above the action button)
 	crouch_btn = _btn("Accroupi", func():
 		pc.mobile_crouch = not pc.mobile_crouch
-		crouch_btn.modulate = UiKit.YELLOW if pc.mobile_crouch else Color.WHITE)
-	grid.add_child(crouch_btn)
-	run_btn = _btn("Courir", func():
-		pc.mobile_run = not pc.mobile_run
-		run_btn.modulate = UiKit.YELLOW if pc.mobile_run else Color.WHITE)
-	grid.add_child(run_btn)
-	var act := _btn("AGIR", func(): pc.press_interact())
-	act.add_theme_font_size_override("font_size", 28)
-	act.add_theme_stylebox_override("normal", UiKit.box(Color(UiKit.YELLOW, 0.85), 20))
-	act.add_theme_color_override("font_color", Color.BLACK)
-	grid.add_child(act)
+		_refresh_toggles()
+		_haptic(), Vector2(150, 84))
+	_br(crouch_btn, -180, -440)
+	drop_btn = _btn("Lâcher", func(): _do(func(): pc.press_drop()), Vector2(150, 84))
+	_br(drop_btn, -520, -120)
+	throw_btn = _btn("Lancer !", func(): _do(func(): pc.press_throw()), Vector2(150, 84))
+	_br(throw_btn, -520, -220)
+	stand_btn = _btn("Se lever", func(): _do(func(): pc.session.request_action(pc.ch, pc.ch.id, "stand")), Vector2(150, 84))
+	_br(stand_btn, -520, -120)
+	# top corner: objectives + pause
 	var top := UiKit.hbox(10)
 	top.set_anchors_preset(Control.PRESET_CENTER_TOP)
 	top.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	top.offset_top = 120
+	top.offset_top = 14
 	root.add_child(top)
-	top.add_child(_btn("Lâcher", func(): pc.press_drop(), Vector2(120, 60)))
-	top.add_child(_btn("Pause", func(): pause_requested.emit(), Vector2(120, 60)))
+	top.add_child(_btn("Objectifs", func(): objectives_requested.emit(), Vector2(140, 64)))
+	top.add_child(_btn("II", func(): pause_requested.emit(), Vector2(80, 64)))
+	for b in [action_btn, prev_btn, next_btn, crouch_btn, drop_btn, throw_btn, stand_btn]:
+		root.add_child(b)
+	pc.focus_changed.connect(_on_focus)
+	_on_focus({})
+	_rest = Vector2(200, root.get_viewport_rect().size.y - 200)
+	_place_stick(_rest)
 
 
-func _btn(text: String, cb: Callable, size := Vector2(120, 96)) -> Button:
+## Anchors a control to the bottom-right corner with its top-left at (x, y) from that corner.
+func _br(c: Control, x: float, y: float) -> void:
+	c.anchor_left = 1.0
+	c.anchor_top = 1.0
+	c.anchor_right = 1.0
+	c.anchor_bottom = 1.0
+	c.offset_left = x
+	c.offset_top = y
+	c.offset_right = x + c.custom_minimum_size.x
+	c.offset_bottom = y + c.custom_minimum_size.y
+
+
+func _btn(text: String, cb: Callable, size: Vector2) -> Button:
 	var b := Button.new()
 	b.text = text
 	b.custom_minimum_size = size
+	b.size = size
 	b.focus_mode = Control.FOCUS_NONE
-	b.add_theme_font_size_override("font_size", 20)
+	b.add_theme_font_size_override("font_size", 22)
+	b.add_theme_stylebox_override("normal", UiKit.box(Color(0.08, 0.09, 0.13, 0.72), 22, 2, Color(1, 1, 1, 0.25)))
+	b.add_theme_stylebox_override("hover", UiKit.box(Color(0.08, 0.09, 0.13, 0.72), 22, 2, Color(1, 1, 1, 0.25)))
+	b.add_theme_stylebox_override("pressed", UiKit.box(Color(0.25, 0.26, 0.35, 0.9), 22, 3, UiKit.YELLOW))
 	b.pressed.connect(cb)
 	return b
+
+
+func _do(f: Callable) -> void:
+	f.call()
+	_haptic()
+
+
+func _haptic() -> void:
+	if Settings.is_mobile() and not Settings.get_v("reduce_effects"):
+		Input.vibrate_handheld(25)
+
+
+func _refresh_toggles() -> void:
+	crouch_btn.modulate = UiKit.YELLOW if pc.mobile_crouch else Color.WHITE
+
+
+func _on_focus(f: Dictionary) -> void:
+	var acts: Array = f.get("actions", [])
+	if acts.is_empty():
+		action_l.text = "Lâcher" if pc.ch and pc.ch.held else "—"
+		action_btn.disabled = not (pc.ch and pc.ch.held)
+	else:
+		var a: Dictionary = acts[clampi(int(f.get("index", 0)), 0, acts.size() - 1)]
+		action_l.text = String(a.label)
+		action_btn.disabled = false
+		action_btn.modulate = Color(1, 1, 1, 0.55) if String(a.get("blocked", "")) != "" else Color.WHITE
+	prev_btn.visible = acts.size() > 1
+	next_btn.visible = acts.size() > 1
+
+
+func _process(_d: float) -> void:
+	if pc == null or pc.ch == null:
+		return
+	var holding := pc.ch.held != null
+	drop_btn.visible = holding
+	throw_btn.visible = holding
+	stand_btn.visible = pc.ch.seated_on != null and not holding
+	run_hint.visible = pc.mobile_run and _stick_touch >= 0
+	run_hint.position = _stick_center + Vector2(-38, -R - 34)
 
 
 func _place_stick(c: Vector2) -> void:
@@ -90,35 +176,52 @@ func _place_stick(c: Vector2) -> void:
 func _input(event: InputEvent) -> void:
 	if pc == null or pc.blocked:
 		return
-	var vp := get_viewport().get_visible_rect().size
+	var vp := root.get_viewport_rect().size
 	if event is InputEventScreenTouch:
 		if event.pressed:
-			if event.position.x < vp.x * 0.4 and event.position.y > vp.y * 0.35 and _stick_touch < 0:
+			if event.position.x < vp.x * 0.45 and event.position.y > vp.y * 0.25 and _stick_touch < 0 and not _over_button(event.position):
 				_stick_touch = event.index
 				_place_stick(event.position)
-			elif event.position.x >= vp.x * 0.4 and _look_touch < 0 and not _over_button(event.position):
+				_stick_base.modulate.a = 1.0
+			elif event.position.x >= vp.x * 0.45 and _look_touch < 0 and not _over_button(event.position):
 				_look_touch = event.index
 		else:
 			if event.index == _stick_touch:
 				_stick_touch = -1
 				pc.mobile_move = Vector2.ZERO
-				_place_stick(Vector2(170, vp.y - 170))
+				pc.mobile_run = false
+				_place_stick(_rest)
+				_stick_base.modulate.a = 0.6
 			elif event.index == _look_touch:
 				_look_touch = -1
 	elif event is InputEventScreenDrag:
 		if event.index == _stick_touch:
 			var d: Vector2 = event.position - _stick_center
-			if d.length() > R:
-				d = d.normalized() * R
-			_stick_knob.position = _stick_center + d - _stick_knob.size * 0.5
-			pc.mobile_move = d / R
+			var l := d.length()
+			# the base follows the thumb when it goes too far, like most mobile games
+			if l > R * 1.35:
+				_stick_center += d.normalized() * (l - R * 1.35)
+				_stick_base.position = _stick_center - Vector2(R, R)
+				d = event.position - _stick_center
+				l = d.length()
+			var clamped := d.normalized() * minf(l, R)
+			_stick_knob.position = _stick_center + clamped - _stick_knob.size * 0.5
+			var v := clamped / R
+			pc.mobile_move = v if v.length() > 0.12 else Vector2.ZERO
+			pc.mobile_run = v.length() > 0.92 and not pc.mobile_crouch
 		elif event.index == _look_touch:
 			var s := float(Settings.get_v("touch_sens")) * 0.012
 			pc.rig.add_look(event.relative.x * s, event.relative.y * s)
+			pc.rig.note_manual_look()
 
 
 func _over_button(p: Vector2) -> bool:
 	for c in root.find_children("*", "Button", true, false):
-		if (c as Control).get_global_rect().has_point(p):
+		var b := c as Control
+		if b.is_visible_in_tree() and b.get_global_rect().grow(12).has_point(p):
+			return true
+	var hud_buttons := get_tree().get_nodes_in_group("touch_blocker")
+	for c in hud_buttons:
+		if (c as Control).is_visible_in_tree() and (c as Control).get_global_rect().has_point(p):
 			return true
 	return false

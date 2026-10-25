@@ -6,7 +6,7 @@ var out := "/tmp/shots"
 var secs := 30.0
 var game: Node
 var _t := 0.0
-var _shots := [2.0, 8.0, 15.0, 25.0, 40.0, 60.0, 90.0]
+var _shots := [3.0, 9.0, 15.0, 25.0, 40.0, 60.0, 90.0]
 var _i := 0
 
 func _ready() -> void:
@@ -17,6 +17,8 @@ func _ready() -> void:
 			secs = float(a.substr(7))
 	DirAccess.make_dir_recursive_absolute(out)
 	Settings.values.tutorial_done = true
+	if "--touch" in OS.get_cmdline_user_args():
+		Settings.values.touch_controls = "on"
 	Settings.values.day_minutes = 6.0
 	Game.start_args = {"mode": "solo", "seed": 4242}
 	game = load("res://src/gameplay/game_scene.tscn").instantiate()

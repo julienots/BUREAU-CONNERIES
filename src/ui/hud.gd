@@ -133,6 +133,8 @@ func _build_objectives() -> void:
 	obj_panel = UiKit.panel(Vector2(330, 0))
 	obj_panel.position = Vector2(16, 150)
 	obj_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if Settings.use_touch():
+		obj_panel.position = Vector2(16, 132)
 	root.add_child(obj_panel)
 	obj_box = UiKit.vbox(6)
 	obj_panel.add_child(obj_box)
@@ -143,8 +145,20 @@ func _build_prompt() -> void:
 	prompt.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
 	prompt.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	prompt.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	prompt.offset_bottom = -110
-	prompt.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	prompt.offset_bottom = -110 if not Settings.use_touch() else -24
+	prompt.mouse_filter = Control.MOUSE_FILTER_IGNORE if not Settings.use_touch() else Control.MOUSE_FILTER_PASS
+	if Settings.use_touch():
+		prompt.add_to_group("touch_blocker")
+		# phones: list sits left of the big action button, centre of the screen stays clear
+		prompt.anchor_left = 1.0
+		prompt.anchor_right = 1.0
+		prompt.anchor_top = 1.0
+		prompt.anchor_bottom = 1.0
+		prompt.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+		prompt.offset_right = -370
+		prompt.offset_left = -370
+		prompt.offset_bottom = -24
+		prompt.offset_top = -24
 	prompt.visible = false
 	root.add_child(prompt)
 	prompt_v = UiKit.vbox(2)
@@ -188,11 +202,19 @@ func _build_notifs() -> void:
 
 func _build_inventory() -> void:
 	var p := UiKit.panel()
-	p.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	p.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-	p.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	p.offset_right = -16
-	p.offset_bottom = -16 if not Settings.use_touch() else -260
+	if Settings.use_touch():
+		# phones: inventory under the money panel, out of the thumbs' way
+		p.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+		p.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+		p.offset_right = -16
+		p.offset_top = 132
+		p.add_to_group("touch_blocker")
+	else:
+		p.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+		p.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+		p.grow_vertical = Control.GROW_DIRECTION_BEGIN
+		p.offset_right = -16
+		p.offset_bottom = -16
 	root.add_child(p)
 	inv_box = UiKit.hbox(8)
 	p.add_child(inv_box)
@@ -359,6 +381,23 @@ func _on_focus(f: Dictionary) -> void:
 		var col := UiKit.TEXT if i == idx else UiKit.MUTED
 		if blocked:
 			col = Color(0.55, 0.55, 0.6)
+		if Settings.use_touch():
+			# phones: every action is a big tappable row
+			var b := Button.new()
+			b.text = String(a.label) + ("  (%ds)" % ceili(float(a.time)) if float(a.get("time", 0.0)) > 0.0 else "") + ("  ⚠" if float(a.get("sus", 0.0)) >= 0.6 else "")
+			b.custom_minimum_size = Vector2(330, 56)
+			b.focus_mode = Control.FOCUS_NONE
+			b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+			b.add_theme_font_size_override("font_size", 21)
+			if i == idx:
+				b.add_theme_stylebox_override("normal", UiKit.box(Color(0.3, 0.28, 0.12, 0.95), 14, 2, UiKit.YELLOW))
+			b.modulate = Color(1, 1, 1, 0.55) if blocked else Color.WHITE
+			var ii := i
+			b.pressed.connect(func():
+				pc.selected = ii
+				pc.press_interact())
+			prompt_v.add_child(b)
+			continue
 		var l := UiKit.label(txt, 18 if i == idx else 16, col)
 		prompt_v.add_child(l)
 		if blocked and i == idx:

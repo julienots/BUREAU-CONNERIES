@@ -83,6 +83,9 @@ func _setup_local_player(ch: Character) -> void:
 		add_child(mobile)
 		mobile.setup(pc)
 		mobile.pause_requested.connect(_toggle_pause)
+		mobile.objectives_requested.connect(func(): hud.obj_panel.visible = not hud.obj_panel.visible)
+		rig.auto_follow = true
+		hud.obj_panel.visible = false
 	session.interrogation_started.connect(func(info): InterrogationPanel.open(ui_root, session, ch, info))
 	session.interrogation_finished.connect(_on_interrogation_done)
 	ch.fell.connect(func(_c): rig.shake(0.6))
