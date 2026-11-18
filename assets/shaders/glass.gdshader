@@ -7,7 +7,7 @@ uniform sampler2D screen_tex : hint_screen_texture, filter_linear_mipmap;
 uniform sampler2D smudge_tex : hint_default_white, filter_linear_mipmap, repeat_enable;
 uniform vec3 tint : source_color = vec3(0.86, 0.93, 0.92);
 uniform float refraction = 0.006;
-uniform float base_roughness : hint_range(0.0, 1.0) = 0.02;
+uniform float base_roughness : hint_range(0.0, 1.0) = 0.07;
 uniform float smudge_strength : hint_range(0.0, 1.0) = 0.5;
 uniform float frost : hint_range(0.0, 1.0) = 0.0;
 uniform float frost_lod = 5.0;

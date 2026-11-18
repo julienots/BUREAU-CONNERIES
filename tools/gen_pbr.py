@@ -397,8 +397,8 @@ def skyline():
 if __name__ == "__main__":
     print("PBR surfaces:")
     carpet()
-    wood_set("wood", (214, 170, 120), (120, 80, 46), 11, 6, 0.32)
-    wood_set("wood_dark", (128, 84, 54), (52, 30, 20), 13, 5, 0.28)
+    wood_set("wood", (214, 170, 120), (120, 80, 46), 11, 6, 0.45)
+    wood_set("wood_dark", (128, 84, 54), (52, 30, 20), 13, 5, 0.48)
     concrete()
     tiles("tile_floor", (212, 210, 202), (128, 126, 120), 4, 0.18, 61)
     tiles("tile_wall", (238, 241, 243), (196, 200, 204), 6, 0.08, 63)

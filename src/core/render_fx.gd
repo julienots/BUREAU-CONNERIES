@@ -119,6 +119,7 @@ static func make_environment(q: String) -> Environment:
 		env.glow_bloom = 0.0 if at_least(q, "high") else 0.05
 		env.glow_hdr_threshold = 1.5 if at_least(q, "high") else 1.2
 		env.glow_hdr_scale = 2.0
+		env.glow_hdr_luminance_cap = 6.0   # a sun glint on glass must not flood the screen
 		env.glow_blend_mode = Environment.GLOW_BLEND_MODE_SOFTLIGHT if q == "medium" else Environment.GLOW_BLEND_MODE_ADDITIVE
 		if at_least(q, "high"):
 			env.glow_intensity = 0.22
@@ -136,7 +137,7 @@ static func make_camera_attributes(q: String) -> CameraAttributes:
 	if at_least(q, "high"):
 		# eye adaptation: dark archives look dark at first, sunny windows bloom
 		ca.auto_exposure_enabled = true
-		ca.auto_exposure_scale = 0.3
+		ca.auto_exposure_scale = 0.24
 		ca.auto_exposure_speed = 0.9
 		ca.auto_exposure_min_sensitivity = 100.0
 		ca.auto_exposure_max_sensitivity = 900.0
@@ -186,7 +187,7 @@ static func make_ceiling_light(q: String, range_m: float, energy: float, shadow:
 		s.spot_attenuation = 0.9
 		s.light_energy = energy * 2.4
 		s.light_size = 0.5
-		s.light_specular = 0.6
+		s.light_specular = 0.3
 		s.light_volumetric_fog_energy = 0.35
 		s.shadow_enabled = shadow
 		s.shadow_blur = 1.5
