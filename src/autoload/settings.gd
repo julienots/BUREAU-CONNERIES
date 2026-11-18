@@ -7,7 +7,8 @@ signal changed
 const PATH := "user://settings.cfg"
 
 var values := {
-	"quality": "auto",          # low / medium / high / auto
+	"quality": "auto",          # low / medium / high / ultra / auto
+	"post_fx": true,            # cinematic camera pass (grain, lens, grading) on high/ultra
 	"render_scale": 1.0,
 	"shadows": true,
 	"ssao": true,
@@ -206,4 +207,11 @@ func use_touch() -> bool:
 func effective_quality() -> String:
 	if values.quality != "auto":
 		return values.quality
-	return "low" if is_mobile() else "high"
+	if is_mobile():
+		return "low"
+	# desktop: real-time GI and every effect on a dedicated GPU, the rest on integrated ones
+	if DisplayServer.get_name() == "headless":
+		return "high"
+	if RenderingServer.get_video_adapter_type() == RenderingDevice.DEVICE_TYPE_DISCRETE_GPU:
+		return "ultra"
+	return "high"

@@ -13,28 +13,36 @@ var shots := [
 	["corridor", Vector3(-20, 1.7, -6.5), Vector3(10, 1.2, -6.5)],
 ]
 var out := "/tmp/shots"
+var q := "high"
+var only := ""
 
 func _ready() -> void:
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--out="):
 			out = a.substr(6)
+		elif a.begins_with("--q="):
+			q = a.substr(4)
+		elif a.begins_with("--only="):
+			only = a.substr(7)
 	DirAccess.make_dir_recursive_absolute(out)
 	var w := OfficeWorld.new()
 	add_child(w)
 	var t0 := Time.get_ticks_msec()
-	OfficeBuilder.build(w, 1234, "high")
+	OfficeBuilder.build(w, 1234, q)
 	print("build ms: ", Time.get_ticks_msec() - t0, " interactables: ", w.interactables.size(), " props: ", w.props.size(), " desks: ", w.desks.size())
 	var nm: NavigationMesh = w.nav_region.navigation_mesh
 	print("nav polys: ", nm.get_polygon_count())
 	var cam := Camera3D.new()
 	cam.fov = 70
 	add_child(cam)
-	await get_tree().create_timer(1.5).timeout
+	await get_tree().create_timer(1.5 if q != "ultra" else 4.0).timeout
 	for s in shots:
+		if only != "" and not (s[0] in only.split(",")):
+			continue
 		cam.global_position = s[1]
 		cam.look_at(s[2] if s[0] != "overview" else Vector3(0, 0, -1), Vector3.UP)
 		await get_tree().process_frame
 		await get_tree().process_frame
-		await get_tree().create_timer(0.3).timeout
+		await get_tree().create_timer(0.3 if q in ["low", "medium"] else 2.5).timeout
 		get_viewport().get_texture().get_image().save_png("%s/%s.png" % [out, s[0]])
 	get_tree().quit()

@@ -1,7 +1,7 @@
 # OFFICE MAYHEM — SuperEssence Studio
 
 Jeu 3D d'infiltration et de comédie physique au bureau. Fais des bêtises sans te faire prendre par le directeur.
-Moteur : **Godot 4.5.1** (GDScript typé, physique Jolt). Plan technique : [`docs/PLAN.md`](docs/PLAN.md).
+Moteur : **Godot 4.7.2** (GDScript typé, physique Jolt, rendu Forward+ / Vulkan). Plan technique : [`docs/PLAN.md`](docs/PLAN.md).
 
 ## Lancer le jeu
 
@@ -10,7 +10,7 @@ Moteur : **Godot 4.5.1** (GDScript typé, physique Jolt). Plan technique : [`doc
 | Android | Installer `OfficeMayhem.apk` (Android 7+, arm64 ou armv7). Autoriser « sources inconnues ». |
 | PC (Windows) | `OfficeMayhem.exe` |
 | PC (Linux) | `./OfficeMayhem.x86_64` |
-| Depuis les sources | `godot --path .` (Godot 4.5.1) |
+| Depuis les sources | `godot --path .` (Godot 4.7.2) |
 
 Les binaires se reconstruisent avec les commandes de la section « Construire ».
 
@@ -55,6 +55,29 @@ Manette : stick gauche/droit, A agir, X secondaire, B lâcher.
 | SFX de bureau (77) et **voix en charabia** (240 répliques, 10 voix × 8 émotions), musiques | ✅ | générés par `tools/gen_audio.py` |
 | Multijoueur : **Internet sans serveur** (relais MQTT public, code de 4 lettres, liste des parties publiques), même Wi-Fi, serveur dédié / maître, salon, rôles, revanche | ✅ | `tools/relay_test.sh` (journée complète + revanche via un broker MQTT local), `tools/relay_ui_test.sh` (2 jeux passent par le vrai menu), `tools/mp_test.sh` |
 | IA générative locale facultative (compatible Ollama) | ⚠️ partiel | code non bloquant ; pas testé avec un vrai modèle |
+
+## Rendu réaliste (Paramètres → Graphismes → Qualité)
+
+| Niveau | Contenu |
+|---|---|
+| **Ultra (réaliste)** | Illumination globale temps réel **SDFGI** (la lumière rebondit sur les murs, la moquette teinte le plafond), ombres douces PCSS du soleil (4 cascades) et des spots du plafond, **TAA**, poussières qui flottent dans les rayons du soleil |
+| **Haute** | Ciel physique, toit invisible qui bloque le soleil → le jour n'entre que par les fenêtres, **brouillard volumétrique** (rayons de lumière), réflexions **SSR** + sondes de réflexion par pièce, **SSIL** + SSAO, exposition automatique (adaptation de l'œil), flou de profondeur lointain, SMAA, bloom avec saleté d'objectif |
+| Moyenne | SSAO, glow, sondes de réflexion, matériaux PBR, shaders verre / écran |
+| Basse (mobile) | Comme avant (rendu Mobile, coût minimal) |
+
+« Automatique » choisit Ultra sur carte graphique dédiée, Haute sur GPU intégré, Basse sur téléphone.
+
+Shaders (`assets/shaders/`) : **verre** (Fresnel physique, réfraction de ce qui est derrière, teinte verte
+rasante, traces de doigts, version dépolie), **écrans LCD** (grille de sous-pixels RGB qui s'estompe avec
+la distance, perte de contraste selon l'angle, fuite du rétroéclairage, revêtement brillant qui reflète la
+pièce), **post-process cinéma** (distorsion d'objectif, aberration chromatique, netteté adaptative type CAS,
+étalonnage ombres froides / hautes lumières chaudes, vignettage, grain argentique). Désactivable :
+« Effets caméra cinéma » et « Réduire les effets ».
+
+Matériaux : textures PBR 1024 px générées (`tools/gen_pbr.py`) avec rugosité + occlusion (ORM) — moquette en
+dalles, chêne / noyer, béton ciré, carrelage, peinture coquille d'œuf, dalles de plafond acoustiques, inox
+brossé, cuir grainé, tissu tissé — micro-rugosité triplanaire sur les surfaces unies, **diffusion
+sous-surfacique** de la peau, trame tissée sur les vêtements, ville extérieure avec perspective atmosphérique.
 
 ## Limites connues (honnêtement)
 
@@ -106,11 +129,11 @@ tools/master_test.sh                                             # serveur maît
 ## Construire
 
 ```
-python3 tools/gen_audio.py && python3 tools/gen_textures.py     # régénère sons/voix/textures (numpy, Pillow, espeak-ng, sox)
+python3 tools/gen_audio.py && python3 tools/gen_textures.py && python3 tools/gen_pbr.py   # sons/voix/textures (numpy, Pillow, espeak-ng, sox)
 godot --headless --path . --export-debug "Android" build/OfficeMayhem.apk
 godot --headless --path . --export-release "Windows Desktop" build/OfficeMayhem.exe
 ```
-(Android : templates d'export Godot 4.5.1 + `apksigner`/`zipalign` configurés dans les paramètres de l'éditeur.)
+(Android : templates d'export Godot 4.7.2 + `apksigner`/`zipalign` configurés dans les paramètres de l'éditeur.)
 
 ## Structure
 

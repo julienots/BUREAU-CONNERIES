@@ -43,7 +43,7 @@ static var _mats: Dictionary = {}
 
 ## Character material: soft rim light for a polished stylised look (cached & shared).
 static func cmat(c: Color, rough := 0.75, rim := 0.35, metal := 0.0) -> StandardMaterial3D:
-	var key := "%s_%.2f_%.2f_%.2f" % [c.to_html(), rough, rim, metal]
+	var key := "%s_%.2f_%.2f_%.2f_%s" % [c.to_html(), rough, rim, metal, Mats.quality]
 	if _mats.has(key):
 		return _mats[key]
 	var m := StandardMaterial3D.new()
@@ -54,6 +54,44 @@ static func cmat(c: Color, rough := 0.75, rim := 0.35, metal := 0.0) -> Standard
 		m.rim_enabled = true
 		m.rim = rim
 		m.rim_tint = 0.55
+	if rough >= 0.8 and RenderFx.at_least(Mats.quality, "medium"):
+		# cloth: woven micro-normal (object-space triplanar so it sticks to the limb) and
+		# a sheen-like rim instead of the cartoon outline glow
+		var weave := Mats.tex("fabric_normal")
+		if weave:
+			m.normal_enabled = true
+			m.normal_texture = weave
+			m.normal_scale = 0.6
+			m.uv1_triplanar = true
+			m.uv1_scale = Vector3(9, 9, 9)
+		m.rim = 0.25
+		m.rim_tint = 0.85
+	_mats[key] = m
+	return m
+
+
+## Skin: subsurface scattering (light bleeding red through ears / fingers), soft sheen,
+## faint micro-roughness. Falls back to the stylised rim material on low quality.
+static func skin_mat(c: Color) -> StandardMaterial3D:
+	if not RenderFx.at_least(Mats.quality, "medium"):
+		return cmat(c, 0.55, 0.3)
+	var key := "skin_%s_%s" % [c.to_html(), Mats.quality]
+	if _mats.has(key):
+		return _mats[key]
+	var m := StandardMaterial3D.new()
+	m.albedo_color = c
+	m.roughness = 0.5
+	m.metallic_specular = 0.45
+	m.subsurf_scatter_enabled = true
+	m.subsurf_scatter_strength = 0.4
+	m.subsurf_scatter_skin_mode = true
+	m.subsurf_scatter_transmittance_enabled = RenderFx.at_least(Mats.quality, "high")
+	m.subsurf_scatter_transmittance_color = Color(0.9, 0.3, 0.2)
+	m.subsurf_scatter_transmittance_depth = 0.08
+	m.subsurf_scatter_transmittance_boost = 0.15
+	m.rim_enabled = true
+	m.rim = 0.18
+	m.rim_tint = 0.7
 	_mats[key] = m
 	return m
 
@@ -66,7 +104,7 @@ func build(appearance: Dictionary) -> void:
 	var skin_c := Color(appearance.get("skin", "#e9bb98"))
 	var shirt_c := Color(appearance.get("shirt", "#3fa7d6"))
 	var pants_c := Color(appearance.get("pants", "#2b2f3a"))
-	var skin := cmat(skin_c, 0.55, 0.3)
+	var skin := skin_mat(skin_c)
 	var shirt := cmat(shirt_c, 0.85)
 	var shirt_dark := cmat(shirt_c.darkened(0.18), 0.85)
 	var shirt_light := cmat(shirt_c.lightened(0.18), 0.85)

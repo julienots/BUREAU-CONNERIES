@@ -15,7 +15,7 @@ func _ready() -> void:
 	ChoicePanel.open_count = 0
 	world = OfficeWorld.new()
 	add_child(world)
-	OfficeBuilder.build(world, 77, "low" if Settings.is_mobile() else "medium", false)
+	OfficeBuilder.build(world, 77, Settings.effective_quality(), false)
 	_pose_cast()
 	cam = Camera3D.new()
 	cam.fov = 55

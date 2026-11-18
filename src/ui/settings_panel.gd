@@ -94,11 +94,12 @@ func _option(parent: Control, label: String, key: String, values: Array, labels:
 
 func _tab_graphics() -> Control:
 	var v := _page("Graphismes")
-	_option(v, "Qualité", "quality", ["auto", "low", "medium", "high"], ["Automatique", "Basse (mobile)", "Moyenne", "Haute"])
+	_option(v, "Qualité", "quality", ["auto", "low", "medium", "high", "ultra"], ["Automatique", "Basse (mobile)", "Moyenne", "Haute", "Ultra (réaliste)"])
 	_slider(v, "Échelle de rendu", "render_scale", 0.5, 1.0, 0.05)
 	_check(v, "Ombres", "shadows")
 	_check(v, "Occlusion ambiante (SSAO)", "ssao")
 	_check(v, "Lueur (glow)", "glow")
+	_check(v, "Effets caméra cinéma (grain, objectif)", "post_fx")
 	_check(v, "Réduire les effets (tremblements, confettis)", "reduce_effects")
 	_slider(v, "Taille des sous-titres", "subtitles_size", 0.7, 1.6, 0.1)
 	v.add_child(UiKit.label("Les changements de qualité s'appliquent à la prochaine journée.", 14, UiKit.MUTED))

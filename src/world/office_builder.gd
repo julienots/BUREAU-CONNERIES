@@ -28,6 +28,7 @@ static func build(world: OfficeWorld, seed: int, q := "high", with_props := true
 	b.rng.seed = seed
 	world.rng.seed = seed + 1
 	b.quality = q
+	Mats.set_quality(q)
 	b._build(with_props)
 
 
@@ -75,46 +76,21 @@ func _rooms() -> void:
 
 
 func _environment() -> void:
-	var env := Environment.new()
-	var sky := Sky.new()
-	var sm := ProceduralSkyMaterial.new()
-	sm.sky_top_color = Color(0.35, 0.55, 0.85)
-	sm.sky_horizon_color = Color(0.75, 0.82, 0.9)
-	sm.ground_horizon_color = Color(0.6, 0.62, 0.65)
-	sm.ground_bottom_color = Color(0.3, 0.3, 0.32)
-	sky.sky_material = sm
-	env.sky = sky
-	env.background_mode = Environment.BG_SKY
-	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	env.ambient_light_energy = 0.55 if quality == "high" else 0.85
-	env.ambient_light_sky_contribution = 0.8
-	env.tonemap_mode = Environment.TONE_MAPPER_AGX
-	env.tonemap_white = 6.0
-	env.adjustment_enabled = true
-	env.adjustment_saturation = 1.12
-	env.adjustment_contrast = 1.05
-	if quality == "high" and Settings.get_v("ssao"):
-		env.ssao_enabled = true
-		env.ssao_radius = 0.8
-		env.ssao_intensity = 1.6
-	if quality != "low" and Settings.get_v("glow"):
-		env.glow_enabled = true
-		env.glow_intensity = 0.4
-		env.glow_bloom = 0.05
-		env.glow_hdr_threshold = 1.2
 	var we := WorldEnvironment.new()
-	we.environment = env
+	we.name = "WorldEnvironment"
+	we.environment = RenderFx.make_environment(quality)
+	we.camera_attributes = RenderFx.make_camera_attributes(quality)
 	w.add_child(we)
 	var sun := DirectionalLight3D.new()
 	sun.name = "Sun"
 	w.add_child(sun)
 	sun.look_at_from_position(Vector3(10, 14, 20), Vector3(-2, 0, 2), Vector3.UP)
-	sun.light_color = Color(1.0, 0.93, 0.8)
-	sun.light_energy = 1.5
-	sun.shadow_enabled = Settings.get_v("shadows") and quality != "low"
-	sun.directional_shadow_max_distance = 45.0
-	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL if quality == "low" else DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
-	sun.shadow_blur = 1.5
+	RenderFx.setup_sun(sun, quality)
+	RenderFx.add_post_fx(w, quality)
+	if w.is_inside_tree():
+		RenderFx.apply_viewport(w.get_viewport(), quality)
+	else:
+		w.tree_entered.connect(func(): RenderFx.apply_viewport(w.get_viewport(), quality), CONNECT_ONE_SHOT)
 
 
 func _floors_and_ceilings() -> void:
@@ -133,7 +109,7 @@ func _floors_and_ceilings() -> void:
 		var fm := MeshKit.add(root, MeshKit.rounded_box(Vector3(r.size.x, 0.02, r.size.y), 0.0, 1, 1.0), floor_mats[id], Vector3(c.x, -0.009 + (0.001 if id == "open_space" else 0.0), c.y), Vector3.ZERO, false)
 		fm.name = "Floor_" + id
 		# ceiling, visible from below only
-		var cm := Mats.textured("ceiling", 1.0, 0.9, 0.0, false).duplicate() as StandardMaterial3D
+		var cm := Mats.textured("ceiling", 1.0, 0.9, 0.0, quality != "low").duplicate() as StandardMaterial3D
 		cm.uv1_scale = Vector3(r.size.x / 1.2, r.size.y / 1.2, 1)
 		# light panels bounce light onto the ceiling; fake it (cheap on mobile)
 		cm.emission_enabled = true
@@ -142,8 +118,18 @@ func _floors_and_ceilings() -> void:
 		var pm := PlaneMesh.new()
 		pm.size = r.size
 		pm.flip_faces = true
+		if RenderFx.at_least(quality, "high"):
+			cm.emission_enabled = false   # real bounce light (SSIL / SDFGI) instead of the fake
 		var ceil := MeshKit.add(root, pm, cm, Vector3(c.x, H, c.y), Vector3.ZERO, false)
 		ceil.name = "Ceiling_" + id
+	if quality != "low":
+		# Roof slab above the ceiling: invisible to cameras but blocks the sun and the sky,
+		# so daylight only comes in through the windows (light shafts, real contrast).
+		var roof := MeshKit.add(root, MeshKit.rounded_box(Vector3(48, 0.3, 30), 0.0, 1), Mats.color(Color(0.5, 0.5, 0.5), 1.0), Vector3(0, H + 0.16, -1), Vector3.ZERO, false)
+		roof.name = "RoofShadow"
+		roof.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
+		RenderFx.add_reflection_probes(w, w.rooms, H, quality)
+		RenderFx.add_dust(w, AABB(Vector3(-22, 0.2, 4), Vector3(36, 2.6, 8)), quality)
 	# open space is larger than the hall rect overlap; hall drawn on top is fine
 
 
@@ -184,7 +170,7 @@ func _glass(x0: float, z0: float, x1: float, z1: float, y0 := 0.0, y1 := H, fros
 	for y in [y0 + 0.03, y1 - 0.03]:
 		MeshKit.add(root, MeshKit.rounded_box(Vector3(len, 0.06, 0.06) if horiz else Vector3(0.06, 0.06, len), 0.005, 1), frame, Vector3(center.x, y, center.z))
 	if frosted_band and y1 - y0 > 2.0:
-		var band := Mats.unshaded(Color(0.95, 0.97, 1.0, 0.55))
+		var band := Mats.glass(1.0)
 		var bsz := Vector3(len, 0.35, 0.025) if horiz else Vector3(0.025, 0.35, len)
 		MeshKit.add(root, MeshKit.rounded_box(bsz, 0.0, 1), band, Vector3(center.x, 1.3, center.z), Vector3.ZERO, false)
 
@@ -271,8 +257,8 @@ func _walls() -> void:
 
 # ------------------------------------------------------------------ lights
 func _lights() -> void:
-	var spacing := 4.0 if quality == "high" else 6.0
-	var omni_every := 1 if quality == "high" else 2
+	var spacing := 4.0 if RenderFx.at_least(quality, "high") else 6.0
+	var omni_every := 1 if RenderFx.at_least(quality, "high") else 2
 	var panel := MeshKit.rounded_box(Vector3(1.2, 0.04, 0.6), 0.01, 1)
 	for id in w.rooms:
 		w.lights[id] = []
@@ -291,13 +277,10 @@ func _lights() -> void:
 				var m := MeshKit.add(root, panel, Mats.emissive(Color(1.0, 0.98, 0.92), 2.2), p, Vector3.ZERO, false)
 				w.light_meshes[id].append(m)
 				if k % omni_every == 0:
-					var l := OmniLight3D.new()
-					l.position = p - Vector3(0, 0.3, 0)
-					l.omni_range = spacing * 1.6 * (1.0 if omni_every == 1 else 1.4)
-					l.omni_attenuation = 0.9
-					l.light_energy = 0.75 if id != "archives" else 0.45
-					l.light_color = Color(1.0, 0.97, 0.9)
-					l.shadow_enabled = false
+					var shadow: bool = quality == "ultra" and Settings.get_v("shadows") and (ix + iz) % 2 == 0
+					var l := RenderFx.make_ceiling_light(quality, spacing * 1.6 * (1.0 if omni_every == 1 else 1.4), 0.75 if id != "archives" else 0.45, shadow)
+					l.position = p - Vector3(0, 0.3 if l is OmniLight3D else 0.06, 0)
+					l.light_color = Color(1.0, 0.96, 0.9)
 					root.add_child(l)
 					w.lights[id].append(l)
 				k += 1
@@ -548,9 +531,7 @@ func _hall_and_corridor() -> void:
 
 
 func _skyline() -> void:
-	var m := Mats.screen("skyline", 1.0)
-	m = m.duplicate()
-	m.emission_energy_multiplier = 0.9
+	var m := Mats.exterior("skyline", 3.0 if RenderFx.at_least(quality, "high") else 0.9)
 	for spec in [[Vector3(0, 2, 34), 180.0, 140.0], [Vector3(0, 2, -36), 0.0, 140.0], [Vector3(46, 2, -1), -90.0, 110.0], [Vector3(-46, 2, -1), 90.0, 110.0]]:
 		var q := MeshKit.add(root, MeshKit.quad(Vector2(spec[2], 40)), m, spec[0], Vector3(0, spec[1], 0), false)
 
