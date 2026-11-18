@@ -7,7 +7,7 @@ render_mode unshaded;
 uniform sampler2D screen_tex : hint_screen_texture, filter_linear_mipmap;
 uniform sampler2D lens_dirt : hint_default_black, filter_linear;
 uniform float distortion = 0.035;
-uniform float aberration = 0.0018;
+uniform float aberration = 0.0011;
 uniform float sharpen = 0.35;
 uniform float dirt_strength = 0.55;
 uniform float vignette = 0.42;

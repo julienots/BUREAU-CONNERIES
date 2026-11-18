@@ -119,7 +119,7 @@ func _floors_and_ceilings() -> void:
 		pm.size = r.size
 		pm.flip_faces = true
 		if RenderFx.at_least(quality, "high"):
-			cm.emission_enabled = false   # real bounce light (SSIL / SDFGI) instead of the fake
+			cm.emission_energy_multiplier = 0.1   # most of it now comes from real bounce (SSIL / SDFGI)
 		var ceil := MeshKit.add(root, pm, cm, Vector3(c.x, H, c.y), Vector3.ZERO, false)
 		ceil.name = "Ceiling_" + id
 	if quality != "low":

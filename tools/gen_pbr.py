@@ -132,7 +132,7 @@ def carpet():
     wear = noise(s, 3, 3, 7)
     col *= (0.92 + wear[..., None] * 0.12)
     stains = np.clip((noise(s, 6, 4, 8) - 0.72) * 6, 0, 1)
-    col = col * (1 - stains[..., None] * 0.25)
+    col = col * (1 - stains[..., None] * 0.08)
     rough = np.clip(0.88 + fib * 0.12, 0, 1)
     ao = ao_from_height(h, 3, 1.6) * (0.75 + 0.25 * seam_m)
     save_set("carpet", col, h, 2.5, rough, ao)
@@ -232,8 +232,8 @@ def ceiling():
     lx, ly = (x * n) % 1.0, (y * n) % 1.0
     e = np.minimum(np.minimum(lx, 1 - lx), np.minimum(ly, 1 - ly)) * s / n
     rail = e < 6
-    fiss = noise(s, 24, 4, 51)
-    fiss = np.clip(1 - np.abs(fiss - 0.5) * 22, 0, 1)
+    fiss = noise(s, 48, 4, 51)
+    fiss = np.clip(1 - np.abs(fiss - 0.5) * 40, 0, 1) * 0.6
     pins = blur((np.random.default_rng(52).random((s, s)) > 0.992).astype(float), 0.8)
     h = 0.8 - fiss * 0.3 - pins * 1.5 + noise(s, 128, 2, 53) * 0.1
     bevel = np.clip((e - 6) / 6, 0, 1)
