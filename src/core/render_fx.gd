@@ -116,18 +116,18 @@ static func make_environment(q: String) -> Environment:
 		env.glow_normalized = false
 		env.glow_intensity = 0.55 if at_least(q, "high") else 0.4
 		env.glow_strength = 1.0
-		env.glow_bloom = 0.04 if at_least(q, "high") else 0.05
-		env.glow_hdr_threshold = 1.0 if at_least(q, "high") else 1.2
+		env.glow_bloom = 0.0 if at_least(q, "high") else 0.05
+		env.glow_hdr_threshold = 1.5 if at_least(q, "high") else 1.2
 		env.glow_hdr_scale = 2.0
 		env.glow_blend_mode = Environment.GLOW_BLEND_MODE_SOFTLIGHT if q == "medium" else Environment.GLOW_BLEND_MODE_ADDITIVE
 		if at_least(q, "high"):
-			env.glow_intensity = 0.35
+			env.glow_intensity = 0.22
 			for i in 7:
 				env.set("glow_levels/%d" % (i + 1), [0.0, 0.6, 1.0, 0.8, 0.7, 0.5, 0.3][i])
 			var dirt := Mats.tex("lens_dirt")
 			if dirt and not Settings.get_v("reduce_effects"):
 				env.glow_map = dirt
-				env.glow_map_strength = 0.6
+				env.glow_map_strength = 0.22
 	return env
 
 
@@ -136,10 +136,10 @@ static func make_camera_attributes(q: String) -> CameraAttributes:
 	if at_least(q, "high"):
 		# eye adaptation: dark archives look dark at first, sunny windows bloom
 		ca.auto_exposure_enabled = true
-		ca.auto_exposure_scale = 0.38
-		ca.auto_exposure_speed = 0.6
-		ca.auto_exposure_min_sensitivity = 60.0
-		ca.auto_exposure_max_sensitivity = 500.0
+		ca.auto_exposure_scale = 0.3
+		ca.auto_exposure_speed = 0.9
+		ca.auto_exposure_min_sensitivity = 100.0
+		ca.auto_exposure_max_sensitivity = 900.0
 		if not Settings.get_v("reduce_effects"):
 			ca.dof_blur_far_enabled = true
 			ca.dof_blur_far_distance = 22.0

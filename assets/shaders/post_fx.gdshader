@@ -9,7 +9,7 @@ uniform sampler2D lens_dirt : hint_default_black, filter_linear;
 uniform float distortion = 0.035;
 uniform float aberration = 0.0011;
 uniform float sharpen = 0.35;
-uniform float dirt_strength = 0.55;
+uniform float dirt_strength = 0.0;   // lens dirt is done by the environment glow map
 uniform float vignette = 0.42;
 uniform float grain = 0.028;
 uniform vec3 shadow_tint : source_color = vec3(0.94, 0.98, 1.05);
