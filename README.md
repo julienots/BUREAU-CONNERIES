@@ -65,6 +65,10 @@ Manette : stick gauche/droit, A agir, X secondaire, B lâcher.
 | Moyenne | SSAO, glow, sondes de réflexion, matériaux PBR, shaders verre / écran |
 | Basse (mobile) | Comme avant (rendu Mobile, coût minimal) |
 
+![Salle de réunion en Ultra](docs/shots/ultra_meeting.jpg)
+
+Autres captures Ultra : `docs/shots/` (open space, bureau du chef, couloir, salle de pause, avant/après).
+
 « Automatique » choisit Ultra sur carte graphique dédiée, Haute sur GPU intégré, Basse sur téléphone.
 
 Shaders (`assets/shaders/`) : **verre** (Fresnel physique, réfraction de ce qui est derrière, teinte verte
