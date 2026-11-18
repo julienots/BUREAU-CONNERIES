@@ -139,6 +139,36 @@ func begin_hold(by: Node) -> void:
 	freeze = false
 	sleeping = false
 	touch(by)
+	_unwedge()
+
+
+## A chair parked under a desk overlaps the desk top a little. Jolt (Godot 4.7) keeps such
+## a body pinned instead of pushing it out, so while it is being pulled free it ignores
+## the static pieces it already overlaps, then collides normally again.
+func _unwedge() -> void:
+	if not is_inside_tree():
+		return
+	var space := get_world_3d().direct_space_state
+	var added: Array[StaticBody3D] = []
+	for c in get_children():
+		if c is CollisionShape3D and c.shape and not c.disabled:
+			var q := PhysicsShapeQueryParameters3D.new()
+			q.shape = c.shape
+			q.transform = c.global_transform
+			q.collision_mask = Layers.STATIC
+			q.exclude = [get_rid()]
+			for h in space.intersect_shape(q, 8):
+				var o: Object = h.collider
+				# never the floor slab (centre below ground level)
+				if o is StaticBody3D and (o as StaticBody3D).global_position.y > 0.05 and not (o as StaticBody3D) in get_collision_exceptions():
+					add_collision_exception_with(o)
+					added.append(o)
+	if added.is_empty():
+		return
+	get_tree().create_timer(0.8).timeout.connect(func():
+		for b in added:
+			if is_instance_valid(b) and is_instance_valid(self):
+				remove_collision_exception_with(b))
 
 
 func end_hold() -> void:

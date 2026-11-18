@@ -1,7 +1,7 @@
 # OFFICE MAYHEM — SuperEssence Studio
 
 Jeu 3D d'infiltration et de comédie physique au bureau. Fais des bêtises sans te faire prendre par le directeur.
-Moteur : **Godot 4.7.2** (GDScript typé, physique Jolt, rendu Forward+ / Vulkan). Plan technique : [`docs/PLAN.md`](docs/PLAN.md).
+Moteur : **Godot 4.5.1** (GDScript typé, physique Jolt, rendu Forward+ / Vulkan). Plan technique : [`docs/PLAN.md`](docs/PLAN.md).
 
 ## Lancer le jeu
 
@@ -10,7 +10,7 @@ Moteur : **Godot 4.7.2** (GDScript typé, physique Jolt, rendu Forward+ / Vulkan
 | Android | Installer `OfficeMayhem.apk` (Android 7+, arm64 ou armv7). Autoriser « sources inconnues ». |
 | PC (Windows) | `OfficeMayhem.exe` |
 | PC (Linux) | `./OfficeMayhem.x86_64` |
-| Depuis les sources | `godot --path .` (Godot 4.7.2) |
+| Depuis les sources | `godot --path .` (Godot 4.5.1) |
 
 Les binaires se reconstruisent avec les commandes de la section « Construire ».
 
@@ -81,6 +81,13 @@ sous-surfacique** de la peau, trame tissée sur les vêtements, ville extérieur
 
 ## Limites connues (honnêtement)
 
+- **Godot 4.7.2 (dernière version) testé mais pas adopté** : le rendu et les 369 tests unitaires passent, mais la
+  physique Jolt de 4.7 change de comportement (une chaise rangée sous un bureau reste coincée, le test de bout
+  en bout devient instable, interrogatoires parfois ratés). Le projet reste donc en 4.5.1, où tout est vert ;
+  le code de rendu fonctionne tel quel dans les deux versions.
+- Rendu Ultra/Haute vérifié uniquement en rendu logiciel (pas sur vraie carte graphique) : les performances
+  réelles restent à mesurer.
+
 - **APK non testé sur un vrai téléphone** : il est signé (v2/v3) et le rendu « Mobile » a été vérifié sur PC,
   mais performances et confort tactile restent à valider sur appareil. Signé avec une clé de **debug**
   (pour le Play Store il faudra une clé de release).
@@ -133,7 +140,7 @@ python3 tools/gen_audio.py && python3 tools/gen_textures.py && python3 tools/gen
 godot --headless --path . --export-debug "Android" build/OfficeMayhem.apk
 godot --headless --path . --export-release "Windows Desktop" build/OfficeMayhem.exe
 ```
-(Android : templates d'export Godot 4.7.2 + `apksigner`/`zipalign` configurés dans les paramètres de l'éditeur.)
+(Android : templates d'export Godot 4.5.1 + `apksigner`/`zipalign` configurés dans les paramètres de l'éditeur.)
 
 ## Structure
 
